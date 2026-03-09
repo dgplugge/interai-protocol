@@ -257,6 +257,103 @@ async function relayMessage() {
     }
 }
 
+// === Slice 7: Relay to n8n ===
+
+/**
+ * Relays the composed message to the server for local storage + n8n forwarding.
+ * POSTs raw AICP text to /api/relay-to-n8n, which saves the .md file,
+ * updates journal-index.json, and forwards to the configured n8n webhook.
+ *
+ * Toast shows combined result:
+ *   "Saved locally + Sent to n8n"  (success)
+ *   "Saved locally, n8n delivery failed" (partial)
+ *   or error details
+ */
+async function relayToN8n() {
+    var msg = buildMessageFromForm();
+    var validation = validateMessage(msg);
+
+    if (!validation.valid) {
+        showToast('Cannot relay: ' + validation.errors.join('; '), 'error');
+        return;
+    }
+
+    var text = serializeMessage(msg);
+    var btn = document.getElementById('relay-n8n-btn');
+
+    // Disable button during relay
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+    }
+
+    try {
+        var response = await fetch('/api/relay-to-n8n', {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: text
+        });
+
+        var result = await response.json();
+
+        if (result.ok) {
+            // Show delivery-specific toast
+            if (result.delivery === 'n8n_sent') {
+                showToast('Saved locally + Sent to n8n (' + result.id + ')', 'success');
+            } else if (result.delivery === 'n8n_failed') {
+                showToast('Saved locally, n8n failed: ' + (result.n8nError || 'unknown'), 'error', 6000);
+            } else {
+                // local_saved only (n8n disabled or no URL)
+                showToast(result.message + ' (' + result.id + ')', 'info');
+            }
+            // Refresh viewer to show new message
+            await refreshMessages();
+            // Close builder
+            toggleBuilder();
+        } else {
+            showToast('Relay failed: ' + (result.error || 'Unknown error'), 'error');
+        }
+    } catch (e) {
+        showToast('Relay-to-n8n error: ' + e.message, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Relay to n8n';
+        }
+    }
+}
+
+/**
+ * Checks n8n integration status and updates the Relay to n8n button visibility.
+ * Called on page load to show/hide the button based on configuration.
+ */
+async function checkN8nStatus() {
+    try {
+        var response = await fetch('/api/integrations');
+        var result = await response.json();
+        var btn = document.getElementById('relay-n8n-btn');
+        if (btn && result.ok) {
+            var n8n = result.integrations && result.integrations.n8n;
+            if (n8n && n8n.enabled && n8n.configured) {
+                btn.classList.add('n8n-active');
+                btn.title = 'n8n webhook configured and enabled';
+            } else if (n8n && n8n.enabled) {
+                btn.title = 'n8n enabled but no webhook URL configured';
+            } else {
+                btn.title = 'n8n integration disabled — edit n8n-config.json to enable';
+            }
+        }
+    } catch (e) {
+        // Silent — button stays in default state
+    }
+}
+
+// Check n8n status when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Delay slightly to let builder init first
+    setTimeout(checkN8nStatus, 500);
+});
+
 // === Slice 4: Approval Pre-fill ===
 
 /**
@@ -481,6 +578,7 @@ function initBuilder() {
                 </form>
                 <div class="builder-actions">
                     <button id="relay-btn" class="btn btn-relay" onclick="relayMessage()">Relay Message</button>
+                    <button id="relay-n8n-btn" class="btn btn-relay-n8n" onclick="relayToN8n()">Relay to n8n</button>
                     <button id="copy-btn" class="btn btn-primary" onclick="copyPacket()">Copy Packet</button>
                     <button class="btn btn-secondary" onclick="addToViewer()">Add to Viewer</button>
                     <button class="btn btn-ghost" onclick="resetBuilder(); updatePreview();">Reset</button>

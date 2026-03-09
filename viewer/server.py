@@ -2,11 +2,15 @@
 """
 AICP Relay Server
 A lightweight HTTP server that serves the AICP Viewer static files
-and provides a POST /api/relay endpoint to save composed messages
-to the journal.
+and provides relay endpoints for saving and forwarding AICP messages.
 
 Protocol: AICP/1.0
-Slice 2 — Assisted Relay
+Slice 7 — Assisted Relay + n8n Workflow Automation Layer
+
+Endpoints:
+    POST /api/relay          — Save message to local journal
+    POST /api/relay-to-n8n   — Save locally + forward to n8n webhook
+    GET  /api/integrations   — Return configured integration status
 
 Usage:
     python viewer/server.py
@@ -19,6 +23,8 @@ import re
 import json
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from datetime import datetime
+from urllib.request import Request, urlopen
+from urllib.error import URLError, HTTPError
 
 PORT = 8080
 
@@ -36,6 +42,32 @@ PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 ROOT_SAMPLES_DIR = os.path.join(PROJECT_ROOT, 'samples')
 ROOT_MESSAGES_DIR = os.path.join(ROOT_SAMPLES_DIR, 'messages')
 ROOT_INDEX_FILE = os.path.join(ROOT_SAMPLES_DIR, 'journal-index.json')
+
+# n8n integration config
+N8N_CONFIG_FILE = os.path.join(SCRIPT_DIR, 'n8n-config.json')
+N8N_CONFIG = {
+    'N8N_ENABLED': False,
+    'N8N_WEBHOOK_URL': '',
+    'N8N_TIMEOUT_MS': 5000
+}
+
+
+def load_n8n_config():
+    """Load n8n configuration from n8n-config.json."""
+    global N8N_CONFIG
+    try:
+        if os.path.exists(N8N_CONFIG_FILE):
+            with open(N8N_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                loaded = json.load(f)
+            N8N_CONFIG.update(loaded)
+            if N8N_CONFIG['N8N_ENABLED']:
+                print(f'[N8N] Integration ENABLED — webhook: {N8N_CONFIG["N8N_WEBHOOK_URL"]}')
+            else:
+                print(f'[N8N] Integration disabled (set N8N_ENABLED=true in n8n-config.json)')
+        else:
+            print(f'[N8N] No config file found at {N8N_CONFIG_FILE} — integration disabled')
+    except (json.JSONDecodeError, IOError) as e:
+        print(f'[N8N] Config load error: {e} — integration disabled')
 
 
 class RelayHandler(SimpleHTTPRequestHandler):
@@ -56,10 +88,19 @@ class RelayHandler(SimpleHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
+    def do_GET(self):
+        """Route GET requests — API endpoints and static files."""
+        if self.path == '/api/integrations':
+            self.handle_integrations()
+        else:
+            super().do_GET()
+
     def do_POST(self):
         """Route POST requests."""
         if self.path == '/api/relay':
             self.handle_relay()
+        elif self.path == '/api/relay-to-n8n':
+            self.handle_relay_to_n8n()
         else:
             self.send_error_json(404, 'Not found')
 
@@ -131,6 +172,161 @@ class RelayHandler(SimpleHTTPRequestHandler):
 
         except Exception as e:
             self.send_error_json(500, f'Relay error: {str(e)}')
+
+    def handle_relay_to_n8n(self):
+        """
+        Relay-to-n8n handler (Slice 7):
+        1. Read raw AICP text from request body
+        2. Parse meta fields
+        3. Save locally (same as /api/relay)
+        4. Forward to configured n8n webhook
+        5. Return combined delivery result
+
+        This is assisted transport — not autonomous messaging.
+        The user explicitly chose to relay to n8n.
+        """
+        try:
+            # Read request body
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length == 0:
+                self.send_error_json(400, 'Empty request body')
+                return
+
+            raw_body = self.rfile.read(content_length).decode('utf-8')
+
+            # Parse AICP meta fields
+            meta = self.parse_aicp_meta(raw_body)
+
+            # Validate required fields
+            if not meta.get('proto'):
+                self.send_error_json(400, 'Missing $PROTO header')
+                return
+            if not meta.get('id'):
+                self.send_error_json(400, 'Missing $ID header')
+                return
+
+            # Check for duplicate message ID
+            if self.is_duplicate_id(meta['id']):
+                self.send_error_json(409, f'Duplicate message ID: {meta["id"]}')
+                return
+
+            # Step 1: Save locally (same as /api/relay)
+            filename = self.generate_filename(meta)
+            filepath = os.path.join(MESSAGES_DIR, filename)
+            root_filepath = os.path.join(ROOT_MESSAGES_DIR, filename)
+
+            os.makedirs(MESSAGES_DIR, exist_ok=True)
+            os.makedirs(ROOT_MESSAGES_DIR, exist_ok=True)
+
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(raw_body)
+
+            with open(root_filepath, 'w', encoding='utf-8') as f:
+                f.write(raw_body)
+
+            relative_file = f'messages/{filename}'
+            self.update_index(INDEX_FILE, meta, relative_file)
+            self.update_index(ROOT_INDEX_FILE, meta, relative_file)
+
+            print(f'[RELAY] Saved {meta["id"]} -> {filename}')
+
+            # Step 2: Forward to n8n webhook
+            delivery = 'local_saved'
+            n8n_status = None
+            n8n_error = None
+
+            if not N8N_CONFIG.get('N8N_ENABLED'):
+                n8n_error = 'n8n integration is disabled'
+                print(f'[N8N] Skipped — integration disabled')
+            elif not N8N_CONFIG.get('N8N_WEBHOOK_URL'):
+                n8n_error = 'No webhook URL configured'
+                print(f'[N8N] Skipped — no webhook URL')
+            else:
+                # Send to n8n
+                try:
+                    webhook_url = N8N_CONFIG['N8N_WEBHOOK_URL']
+                    timeout_s = N8N_CONFIG.get('N8N_TIMEOUT_MS', 5000) / 1000.0
+
+                    n8n_payload = json.dumps({
+                        'message': raw_body,
+                        'messageId': meta['id'],
+                        'targets': ['n8n'],
+                        'meta': {
+                            'type': meta.get('type'),
+                            'from': meta.get('from'),
+                            'to': meta.get('to'),
+                            'task': meta.get('task', ''),
+                            'time': meta.get('time')
+                        }
+                    }).encode('utf-8')
+
+                    req = Request(
+                        webhook_url,
+                        data=n8n_payload,
+                        headers={'Content-Type': 'application/json'},
+                        method='POST'
+                    )
+
+                    response = urlopen(req, timeout=timeout_s)
+                    n8n_status = response.status
+                    delivery = 'n8n_sent'
+                    print(f'[N8N] Sent {meta["id"]} -> {webhook_url} (HTTP {n8n_status})')
+
+                except HTTPError as e:
+                    n8n_status = e.code
+                    n8n_error = f'HTTP {e.code}: {e.reason}'
+                    delivery = 'n8n_failed'
+                    print(f'[N8N] Failed {meta["id"]} -> HTTP {e.code}: {e.reason}')
+
+                except URLError as e:
+                    n8n_error = str(e.reason)
+                    delivery = 'n8n_failed'
+                    print(f'[N8N] Failed {meta["id"]} -> {e.reason}')
+
+                except Exception as e:
+                    n8n_error = str(e)
+                    delivery = 'n8n_failed'
+                    print(f'[N8N] Failed {meta["id"]} -> {e}')
+
+            # Build response
+            result = {
+                'ok': True,
+                'id': meta['id'],
+                'file': relative_file,
+                'delivery': delivery,
+                'message': f'Saved locally'
+            }
+
+            if delivery == 'n8n_sent':
+                result['externalStatus'] = n8n_status
+                result['message'] = f'Saved locally + sent to n8n'
+            elif delivery == 'n8n_failed':
+                result['n8nError'] = n8n_error
+                if n8n_status:
+                    result['externalStatus'] = n8n_status
+                result['message'] = f'Saved locally, n8n delivery failed'
+            elif n8n_error:
+                result['n8nError'] = n8n_error
+                result['message'] = f'Saved locally ({n8n_error})'
+
+            self.send_json(200, result)
+
+        except Exception as e:
+            self.send_error_json(500, f'Relay-to-n8n error: {str(e)}')
+
+    def handle_integrations(self):
+        """
+        GET /api/integrations — returns configured integration status flags.
+        No secrets exposed — just enabled/disabled and connectivity state.
+        """
+        integrations = {
+            'n8n': {
+                'enabled': N8N_CONFIG.get('N8N_ENABLED', False),
+                'configured': bool(N8N_CONFIG.get('N8N_WEBHOOK_URL')),
+                'timeout_ms': N8N_CONFIG.get('N8N_TIMEOUT_MS', 5000)
+            }
+        }
+        self.send_json(200, {'ok': True, 'integrations': integrations})
 
     def parse_aicp_meta(self, text):
         """
@@ -269,6 +465,10 @@ def main():
     print(f'AICP Relay Server starting on port {PORT}')
     print(f'Serving from: {os.getcwd()}')
     print(f'Journal index: {os.path.abspath(INDEX_FILE)}')
+
+    # Load n8n integration config
+    load_n8n_config()
+
     print(f'Open http://localhost:{PORT}')
     print()
 

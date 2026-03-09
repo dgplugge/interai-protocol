@@ -854,6 +854,31 @@ body {
     border: 1px solid var(--border-color);
 }
 
+/* === Slice 7: n8n Relay Button === */
+
+.btn-relay-n8n {
+    background: transparent;
+    color: #ff9800;
+    border: 1px solid #ff9800;
+}
+
+.btn-relay-n8n:hover {
+    background: #ff9800;
+    color: #fff;
+}
+
+.btn-relay-n8n:disabled {
+    background: #555;
+    color: #999;
+    border-color: #555;
+    cursor: not-allowed;
+}
+
+.btn-relay-n8n.n8n-active {
+    border-color: #ff9800;
+    box-shadow: 0 0 6px rgba(255, 152, 0, 0.3);
+}
+
 /* === Slice 4: Approve Button === */
 
 .btn-approve {
