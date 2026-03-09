@@ -366,6 +366,36 @@
       "time": "2026-03-09T13:20:00-04:00",
       "task": "Propose guided message starter UX for Builder",
       "file": "messages/2026-03-09-MSG-0026-response-lodestar.md"
+    },
+    {
+      "id": "MSG-0027",
+      "type": "ACK",
+      "from": "Don",
+      "to": [
+        "Lodestar",
+        "Don",
+        "Pharos"
+      ],
+      "time": "2026-03-09T13:31:15-04:00",
+      "task": "Approve: Design Slice 4 — Agent Onboarding Flow",
+      "file": "messages/2026-03-09-MSG-0027-ack-don.md",
+      "ref": "MSG-0025",
+      "seq": 27
+    },
+    {
+      "id": "MSG-0028",
+      "type": "ACK",
+      "from": "Don",
+      "to": [
+        "Lodestar",
+        "Don",
+        "Pharos"
+      ],
+      "time": "2026-03-09T13:33:24-04:00",
+      "task": "Approve: Propose guided message starter UX for Builder",
+      "file": "messages/2026-03-09-MSG-0028-ack-don.md",
+      "ref": "MSG-0026",
+      "seq": 28
     }
   ],
   "protocol_amendments": [

@@ -355,6 +355,7 @@ function initBuilder() {
                                 <option value="">—</option>
                                 <option value="LOW">LOW</option>
                                 <option value="NORMAL">NORMAL</option>
+                                <option value="MEDIUM">MEDIUM</option>
                                 <option value="HIGH">HIGH</option>
                             </select>
                         </div>

@@ -362,6 +362,7 @@ function getPriorityColor(priority) {
     const colors = {
         'LOW':    '#757575',
         'NORMAL': '#1976d2',
+        'MEDIUM': '#f57c00',
         'HIGH':   '#d32f2f'
     };
     return colors[priority] || '#757575';

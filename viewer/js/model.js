@@ -17,7 +17,7 @@ const MESSAGE_TYPES = ['REQUEST', 'RESPONSE', 'ACK', 'ERROR', 'HANDOFF', 'REVIEW
 const STATUS_VALUES = ['PENDING', 'IN_PROGRESS', 'COMPLETE', 'FAILED'];
 
 // Valid priority values
-const PRIORITY_VALUES = ['LOW', 'NORMAL', 'HIGH'];
+const PRIORITY_VALUES = ['LOW', 'NORMAL', 'MEDIUM', 'HIGH'];
 
 // Keyword classification: which segment each keyword belongs to
 const ENVELOPE_KEYWORDS = ['$PROTO', '$TYPE', '$ID', '$FROM', '$TO', '$TIME'];
