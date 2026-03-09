@@ -872,6 +872,38 @@ body {
     color: #fff;
 }
 
+.btn-request-review {
+    padding: 4px 10px;
+    border: 1px solid var(--accent-blue);
+    background: transparent;
+    color: var(--accent-blue);
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-request-review:hover {
+    background: var(--accent-blue);
+    color: #fff;
+}
+
+.btn-ack {
+    padding: 4px 10px;
+    border: 1px solid var(--accent-purple);
+    background: transparent;
+    color: var(--accent-purple);
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-ack:hover {
+    background: var(--accent-purple);
+    color: #fff;
+}
+
 /* === Slice 4: Extended Status Dots === */
 
 .status-pending {

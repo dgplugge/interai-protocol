@@ -218,6 +218,8 @@ function renderDetail(msg) {
     html += `<button id="copy-detail-btn" class="btn-copy-detail" onclick="copyDetailPacket()">Copy Packet</button>`;
     html += `<button class="btn-raw-toggle ${showRaw ? 'active' : ''}" onclick="toggleRawView()">${showRaw ? 'Formatted' : 'Raw'}</button>`;
     html += `<button class="btn-approve" onclick="approveMessage()">Approve</button>`;
+    html += `<button class="btn-request-review" onclick="requestReviewMessage()">Request Review</button>`;
+    html += `<button class="btn-ack" onclick="ackMessage()">ACK</button>`;
     html += '</div>';
 
     // Raw view mode
@@ -443,18 +445,31 @@ function showToast(message, type, duration) {
     }, duration);
 }
 
-// === Slice 4: Approve Button ===
+// === Action Palette (Step 1: Hardcoded high-value actions) ===
 
 /**
  * Opens the builder pre-filled as an approval ACK for the selected message.
- * The Orchestrator clicks "Approve" → builder opens with ACK defaults →
- * user edits/confirms → clicks "Relay Message" to save.
  */
 function approveMessage() {
     if (selectedIndex < 0) return;
-    const msg = allMessages[selectedIndex];
-    // Delegate to builder's prefillApproval
-    prefillApproval(msg);
+    prefillApproval(allMessages[selectedIndex]);
+}
+
+/**
+ * Opens the builder pre-filled as a review request for the selected message.
+ * Typically used after an implementation RESPONSE to request Lodestar's review.
+ */
+function requestReviewMessage() {
+    if (selectedIndex < 0) return;
+    prefillRequestReview(allMessages[selectedIndex]);
+}
+
+/**
+ * Opens the builder pre-filled as a quick ACK for the selected message.
+ */
+function ackMessage() {
+    if (selectedIndex < 0) return;
+    prefillAck(allMessages[selectedIndex]);
 }
 
 // --- Keyboard navigation ---

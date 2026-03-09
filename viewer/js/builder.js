@@ -299,6 +299,71 @@ function prefillApproval(refMsg) {
     updatePreview();
 }
 
+/**
+ * Opens the builder pre-filled as a review request.
+ * Typically used to ask Lodestar to review an implementation.
+ * @param {Object} refMsg - The message to request review of
+ */
+function prefillRequestReview(refMsg) {
+    if (!builderVisible) toggleBuilder();
+
+    setFieldValue('b-proto', 'AICP/1.0');
+    setFieldValue('b-type', 'REQUEST');
+    setFieldValue('b-id', generateNextMessageId());
+    setFieldValue('b-from', 'Don');
+    setFieldValue('b-to', 'Lodestar');
+    setFieldValue('b-time', nowISO());
+    setFieldValue('b-task', 'Review: ' + (refMsg.meta.task || refMsg.envelope.id));
+    setFieldValue('b-status', 'PENDING');
+    setFieldValue('b-priority', refMsg.meta.priority || 'HIGH');
+    setFieldValue('b-role', 'Orchestrator');
+    setFieldValue('b-intent', 'Request design/implementation review from Lodestar');
+    setFieldValue('b-ref', refMsg.envelope.id);
+    setFieldValue('b-seq', getNextSeq());
+    setFieldValue('b-project', 'InterAI-Protocol');
+    setFieldValue('b-domain', 'Multi-Agent Systems');
+    setFieldValue('b-payload', 'Please review the referenced message and provide feedback.\n\nAreas of interest:\n- Correctness\n- Design alignment\n- Suggestions for improvement');
+
+    updatePreview();
+}
+
+/**
+ * Opens the builder pre-filled as a quick ACK.
+ * @param {Object} refMsg - The message to acknowledge
+ */
+function prefillAck(refMsg) {
+    if (!builderVisible) toggleBuilder();
+
+    // Build recipient list from original sender + recipients, deduped
+    var recipients = [];
+    if (refMsg.envelope.from) recipients.push(refMsg.envelope.from);
+    if (refMsg.envelope.to) {
+        refMsg.envelope.to.split(',').forEach(function(r) {
+            var name = r.trim();
+            if (name && recipients.indexOf(name) === -1) recipients.push(name);
+        });
+    }
+
+    setFieldValue('b-proto', 'AICP/1.0');
+    setFieldValue('b-type', 'ACK');
+    setFieldValue('b-id', generateNextMessageId());
+    setFieldValue('b-from', 'Don');
+    setFieldValue('b-to', recipients.join(', '));
+    setFieldValue('b-time', nowISO());
+    setFieldValue('b-task', 'Acknowledge: ' + (refMsg.meta.task || refMsg.envelope.id));
+    setFieldValue('b-status', 'COMPLETE');
+    setFieldValue('b-priority', '');
+    setFieldValue('b-role', 'Orchestrator');
+    setFieldValue('b-intent', 'Acknowledge receipt and understanding');
+    setFieldValue('b-ref', refMsg.envelope.id);
+    setFieldValue('b-seq', getNextSeq());
+    setFieldValue('b-project', 'InterAI-Protocol');
+    setFieldValue('b-domain', 'Multi-Agent Systems');
+    setFieldValue('b-payload', 'Acknowledged.');
+
+    updatePreview();
+}
+
 // --- Helper functions ---
 
 function getFieldValue(id) {
