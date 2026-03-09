@@ -155,14 +155,14 @@
     },
     {
       "id": "MSG-0015",
-      "type": "ACK",
-      "ref": "MSG-239580d5",
+      "type": "REVIEW",
+      "ref": "MSG-0014",
       "seq": 15,
       "from": "LodeStar",
       "to": ["Don", "Pharos"],
-      "time": "2026-03-09T10:58:00-04:00",
+      "time": "2026-03-09T11:20:00-04:00",
       "task": "Review Slice 1 — Message Builder implementation",
-      "file": "messages/2026-03-09-MSG-0015-ack-lodestar.md"
+      "file": "messages/2026-03-09-MSG-0015-review-lodestar.md"
     },
     {
       "id": "MSG-0016",
@@ -174,6 +174,17 @@
       "time": "2026-03-09T11:10:00-04:00",
       "task": "Acknowledge Slice 1 Builder review and address normalization notes",
       "file": "messages/2026-03-09-MSG-0016-ack-pharos.md"
+    },
+    {
+      "id": "MSG-0017",
+      "type": "ACK",
+      "ref": "MSG-0015",
+      "seq": 17,
+      "from": "Pharos",
+      "to": ["Don", "LodeStar"],
+      "time": "2026-03-09T11:30:00-04:00",
+      "task": "Acknowledge Slice 1 REVIEW approval and prepare Slice 2",
+      "file": "messages/2026-03-09-MSG-0017-ack-pharos.md"
     }
   ],
   "protocol_amendments": [
