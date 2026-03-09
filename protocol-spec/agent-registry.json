@@ -29,5 +29,14 @@
       "capabilities": ["architecture", "analysis"],
       "status": "active"
     }
-  ]
+  ],
+  "schema_notes": {
+    "valid_statuses": ["pending", "standby", "active", "offline", "retired"],
+    "onboarding_block": {
+      "state": "awaiting_ack | acknowledged | complete",
+      "assigned_role": "<string>",
+      "invited_at": "<ISO timestamp>",
+      "ack_message_id": "<MSG-ID or null>"
+    }
+  }
 }

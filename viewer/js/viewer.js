@@ -217,6 +217,7 @@ function renderDetail(msg) {
     let html = '<div class="detail-toolbar">';
     html += `<button id="copy-detail-btn" class="btn-copy-detail" onclick="copyDetailPacket()">Copy Packet</button>`;
     html += `<button class="btn-raw-toggle ${showRaw ? 'active' : ''}" onclick="toggleRawView()">${showRaw ? 'Formatted' : 'Raw'}</button>`;
+    html += `<button class="btn-approve" onclick="approveMessage()">Approve</button>`;
     html += '</div>';
 
     // Raw view mode
@@ -439,6 +440,20 @@ function showToast(message, type, duration) {
             }
         }, 300);
     }, duration);
+}
+
+// === Slice 4: Approve Button ===
+
+/**
+ * Opens the builder pre-filled as an approval ACK for the selected message.
+ * The Orchestrator clicks "Approve" → builder opens with ACK defaults →
+ * user edits/confirms → clicks "Relay Message" to save.
+ */
+function approveMessage() {
+    if (selectedIndex < 0) return;
+    const msg = allMessages[selectedIndex];
+    // Delegate to builder's prefillApproval
+    prefillApproval(msg);
 }
 
 // --- Keyboard navigation ---

@@ -3,12 +3,14 @@
  * Displays team members, roles, capabilities, and status.
  *
  * Protocol: AICP/1.0
- * Version: Slice 3 — Agent Registry
+ * Version: Slice 3+4 — Agent Registry + Onboarding
  *
  * Features:
  *   - Loads agent-registry.json from samples/
  *   - Renders agent cards with name, type, roles, status, capabilities
  *   - Toggleable side panel via "Agents" button in header
+ *   - Status colors: active=green, standby=yellow, pending=blue, offline=gray, retired=white
+ *   - Onboarding badge: "Awaiting ACK" for pending agents
  */
 
 let agentPanelVisible = false;
@@ -62,6 +64,11 @@ function renderAgentPanel() {
         html += '<span class="status-dot status-' + agent.status + '"></span>';
         html += '<span class="status-label">' + agent.status + '</span>';
         html += '</div>';
+
+        // Onboarding badge (for agents with pending onboarding)
+        if (agent.onboarding && agent.onboarding.state === 'awaiting_ack') {
+            html += '<div class="onboarding-badge">Awaiting ACK</div>';
+        }
 
         // Roles
         if (agent.roles && agent.roles.length > 0) {

@@ -257,6 +257,48 @@ async function relayMessage() {
     }
 }
 
+// === Slice 4: Approval Pre-fill ===
+
+/**
+ * Opens the builder pre-filled as an ACK approval for the given message.
+ * Called from the Approve button in the detail toolbar.
+ * @param {Object} refMsg - The message being approved
+ */
+function prefillApproval(refMsg) {
+    // Show builder if hidden
+    if (!builderVisible) toggleBuilder();
+
+    // Build recipient list from original sender + recipients, deduped
+    var recipients = [];
+    if (refMsg.envelope.from) recipients.push(refMsg.envelope.from);
+    if (refMsg.envelope.to) {
+        refMsg.envelope.to.split(',').forEach(function(r) {
+            var name = r.trim();
+            if (name && recipients.indexOf(name) === -1) recipients.push(name);
+        });
+    }
+
+    // Pre-fill as approval ACK
+    setFieldValue('b-proto', 'AICP/1.0');
+    setFieldValue('b-type', 'ACK');
+    setFieldValue('b-id', generateNextMessageId());
+    setFieldValue('b-from', 'Don');
+    setFieldValue('b-to', recipients.join(', '));
+    setFieldValue('b-time', nowISO());
+    setFieldValue('b-task', 'Approve: ' + (refMsg.meta.task || refMsg.envelope.id));
+    setFieldValue('b-status', 'COMPLETE');
+    setFieldValue('b-priority', refMsg.meta.priority || '');
+    setFieldValue('b-role', 'Orchestrator');
+    setFieldValue('b-intent', 'Orchestrator authorization to proceed');
+    setFieldValue('b-ref', refMsg.envelope.id);
+    setFieldValue('b-seq', getNextSeq());
+    setFieldValue('b-project', 'InterAI-Protocol');
+    setFieldValue('b-domain', 'Multi-Agent Systems');
+    setFieldValue('b-payload', 'APPROVED.\n\nProceeding as proposed.');
+
+    updatePreview();
+}
+
 // --- Helper functions ---
 
 function getFieldValue(id) {
