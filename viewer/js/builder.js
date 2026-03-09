@@ -42,19 +42,19 @@ function resetBuilder() {
     const form = document.getElementById('builder-form');
     if (!form) return;
 
-    // Auto-fill defaults
+    // Auto-fill defaults with smart sequential values
     setFieldValue('b-proto', 'AICP/1.0');
     setFieldValue('b-type', 'REQUEST');
-    setFieldValue('b-id', generateMessageId());
-    setFieldValue('b-from', '');
-    setFieldValue('b-to', '');
+    setFieldValue('b-id', generateNextMessageId());
+    setFieldValue('b-from', 'Don');
+    setFieldValue('b-to', 'Pharos, LodeStar');
     setFieldValue('b-time', nowISO());
     setFieldValue('b-task', '');
     setFieldValue('b-status', 'PENDING');
     setFieldValue('b-priority', '');
-    setFieldValue('b-role', '');
+    setFieldValue('b-role', 'Orchestrator');
     setFieldValue('b-intent', '');
-    setFieldValue('b-ref', '');
+    setFieldValue('b-ref', getLastMessageId() || '');
     setFieldValue('b-seq', getNextSeq());
     setFieldValue('b-project', 'InterAI-Protocol');
     setFieldValue('b-domain', 'Multi-Agent Systems');

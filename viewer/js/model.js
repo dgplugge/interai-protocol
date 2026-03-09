@@ -168,12 +168,45 @@ function formatTime(isoTime) {
 }
 
 /**
- * Generates a UUID v4 string for message IDs.
+ * Generates a UUID v4 string for message IDs (fallback).
  * @returns {string} UUID string like "MSG-xxxxxxxx"
  */
 function generateMessageId() {
     const hex = () => Math.floor(Math.random() * 0x10000).toString(16).padStart(4, '0');
     return `MSG-${hex()}${hex()}`;
+}
+
+/**
+ * Generates the next sequential message ID based on loaded messages.
+ * Scans allMessages for the highest MSG-NNNN number and returns MSG-(N+1).
+ * Falls back to generateMessageId() if no sequential IDs found.
+ * @returns {string} Next sequential ID like "MSG-0014"
+ */
+function generateNextMessageId() {
+    if (typeof allMessages === 'undefined' || !allMessages || allMessages.length === 0) {
+        return generateMessageId();
+    }
+    let maxNum = 0;
+    allMessages.forEach(msg => {
+        const match = msg.envelope.id.match(/^MSG-(\d+)$/);
+        if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxNum) maxNum = num;
+        }
+    });
+    if (maxNum === 0) return generateMessageId();
+    return `MSG-${String(maxNum + 1).padStart(4, '0')}`;
+}
+
+/**
+ * Returns the ID of the most recent message (for $REF default).
+ * @returns {string|null} The last message ID or null
+ */
+function getLastMessageId() {
+    if (typeof allMessages === 'undefined' || !allMessages || allMessages.length === 0) {
+        return null;
+    }
+    return allMessages[allMessages.length - 1].envelope.id || null;
 }
 
 /**
@@ -286,7 +319,7 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         createMessage, createDraftMessage, serializeMessage,
         validateMessage, getSenderColor, formatTime,
-        generateMessageId, nowISO,
+        generateMessageId, generateNextMessageId, getLastMessageId, nowISO,
         REQUIRED_KEYWORDS, MESSAGE_TYPES, STATUS_VALUES, PRIORITY_VALUES,
         ENVELOPE_KEYWORDS, META_KEYWORDS, AUDIT_KEYWORDS, SENDER_COLORS
     };
