@@ -47,7 +47,7 @@ function resetBuilder() {
     setFieldValue('b-type', 'REQUEST');
     setFieldValue('b-id', generateNextMessageId());
     setFieldValue('b-from', 'Don');
-    setFieldValue('b-to', 'Pharos, LodeStar');
+    setFieldValue('b-to', 'Pharos, Lodestar');
     setFieldValue('b-time', nowISO());
     setFieldValue('b-task', '');
     setFieldValue('b-status', 'PENDING');
@@ -271,7 +271,7 @@ function initBuilder() {
                         </div>
                         <div class="builder-field">
                             <label for="b-to">$TO</label>
-                            <input type="text" id="b-to" placeholder="Pharos, LodeStar" oninput="updatePreview()">
+                            <input type="text" id="b-to" placeholder="Pharos, Lodestar" oninput="updatePreview()">
                         </div>
                     </div>
                     <div class="builder-row">

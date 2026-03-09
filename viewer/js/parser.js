@@ -12,7 +12,7 @@
  *   <content>          (freeform markdown)
  *   ---END---          (payload delimiter end)
  *
- * Hardening (per LodeStar review MSG-0011):
+ * Hardening (per Lodestar review MSG-0011):
  *   - Custom keys may contain spaces, hyphens, dots
  *   - Invalid $SEQ normalized to null with warning
  *   - Duplicate keys: last-write-wins with console warning

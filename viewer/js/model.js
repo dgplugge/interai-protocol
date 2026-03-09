@@ -28,7 +28,7 @@ const AUDIT_KEYWORDS = ['$SUMMARY', '$CHANGES', '$CHECKSUM'];
 const SENDER_COLORS = {
     'Don':      { bg: '#e8f5e9', border: '#4caf50', text: '#2e7d32', badge: '#4caf50' },
     'Pharos':   { bg: '#e3f2fd', border: '#2196f3', text: '#1565c0', badge: '#2196f3' },
-    'LodeStar': { bg: '#fff8e1', border: '#ffc107', text: '#f57f17', badge: '#ffa000' },
+    'Lodestar': { bg: '#fff8e1', border: '#ffc107', text: '#f57f17', badge: '#ffa000' },
     'default':  { bg: '#f5f5f5', border: '#9e9e9e', text: '#616161', badge: '#9e9e9e' }
 };
 
@@ -146,7 +146,7 @@ function getSenderColor(sender) {
 
 /**
  * Formats an ISO 8601 timestamp into a human-readable string.
- * Handles Invalid Date gracefully (per LodeStar review MSG-0011).
+ * Handles Invalid Date gracefully (per Lodestar review MSG-0011).
  * @param {string} isoTime - ISO 8601 timestamp
  * @returns {string} Formatted time string
  */

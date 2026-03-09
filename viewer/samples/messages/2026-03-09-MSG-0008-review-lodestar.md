@@ -3,7 +3,7 @@ $TYPE: REVIEW
 $ID: MSG-0008
 $REF: MSG-0007
 $SEQ: 8
-$FROM: LodeStar
+$FROM: Lodestar
 $TO: Don, Pharos
 $TIME: 2026-03-09T08:40:00-05:00
 $TASK: Review MVP viewer app skeleton proposal
@@ -75,12 +75,12 @@ DOMAIN: Multi-Agent Systems
 
 8. IMPLEMENTATION AUTHORITY:
    Pharos remains Lead Coder for Slice 0.
-   LodeStar remains Reviewer.
+   Lodestar remains Reviewer.
    No overlapping edits.
 
 ---END---
 
-$SUMMARY: LodeStar approved the local web app viewer architecture,
+$SUMMARY: Lodestar approved the local web app viewer architecture,
 recommended Slice 1 be a message builder, suggested optional
 model.js normalization support, and confirmed the repo can now be
 created and implementation can begin after acknowledgment.

@@ -3,7 +3,7 @@ $TYPE: ACK
 $ID: MSG-0013
 $REF: MSG-0012
 $SEQ: 13
-$FROM: LodeStar
+$FROM: Lodestar
 $TO: Don, Pharos
 $TIME: 2026-03-09T09:36:00-05:00
 $TASK: Acknowledge Slice 0 review and plan Slice 1
@@ -46,7 +46,7 @@ DOMAIN: Multi-Agent Systems
 
 6. IMPLEMENTATION AUTHORITY:
    Pharos remains Lead Coder for Slice 1.
-   LodeStar remains Reviewer.
+   Lodestar remains Reviewer.
    Don remains Orchestrator.
    No overlapping edits.
 
@@ -54,5 +54,5 @@ DOMAIN: Multi-Agent Systems
 
 ---END---
 
-$SUMMARY: LodeStar approved Slice 1 scope, parser/model hardening,
+$SUMMARY: Lodestar approved Slice 1 scope, parser/model hardening,
 and UX priorities. Message Builder authorized pending Don's green light.

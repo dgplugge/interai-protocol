@@ -4,7 +4,7 @@ $ID: MSG-0006
 $REF: MSG-0005
 $SEQ: 6
 $FROM: Don
-$TO: Pharos, LodeStar
+$TO: Pharos, Lodestar
 $TIME: 2026-03-09T08:25:00-05:00
 $TASK: Design and implement MVP viewer app skeleton
 $STATUS: PENDING
@@ -35,7 +35,7 @@ Constraints:
 - Avoid overengineering
 - No overlapping edits between agents
 - Pharos is Lead Coder
-- LodeStar is Lead Designer and Reviewer
+- Lodestar is Lead Designer and Reviewer
 
 Questions for Pharos:
 1. What platform do you recommend for the skeleton?
@@ -57,7 +57,7 @@ Please respond with:
 - any assumptions
 - whether Don should now move into CodeEx
 
-LodeStar will review the proposed design before implementation begins.
+Lodestar will review the proposed design before implementation begins.
 
 ---END---
 

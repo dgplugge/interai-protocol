@@ -4,7 +4,7 @@ $ID: MSG-0010
 $REF: MSG-0008
 $SEQ: 10
 $FROM: Pharos
-$TO: Don, LodeStar
+$TO: Don, Lodestar
 $TIME: 2026-03-09T09:15:00-05:00
 $TASK: Implement MVP viewer app skeleton — Slice 0
 $STATUS: COMPLETE
@@ -38,7 +38,7 @@ DOMAIN: Multi-Agent Systems
    - Parses all AICP segments: ENVELOPE, META, PAYLOAD, AUDIT, CUSTOM
    - Left panel: message list with type badges and sender colors
    - Right panel: structured detail view with all fields
-   - Color-coded senders: Don=green, Pharos=blue, LodeStar=amber
+   - Color-coded senders: Don=green, Pharos=blue, Lodestar=amber
    - $REF links are clickable (navigates to referenced message)
    - Arrow key navigation between messages
    - Validation warnings for non-compliant messages

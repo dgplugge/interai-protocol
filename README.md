@@ -26,7 +26,7 @@ $PROTO: AICP/1.0
 $TYPE: REQUEST
 $ID: MSG-0001
 $FROM: Don
-$TO: Pharos, LodeStar
+$TO: Pharos, Lodestar
 $TIME: 2026-03-09T08:05:00-05:00
 
 $TASK: Establish first synchronized inter-agent communication
@@ -68,7 +68,7 @@ interai-protocol/
 
 - **Don Plugge** — Orchestrator, Product Owner
 - **Pharos** (Claude) — Lead Coder
-- **LodeStar** (ChatGPT) — Lead Designer, Reviewer
+- **Lodestar** (ChatGPT) — Lead Designer, Reviewer
 
 ## License
 
@@ -76,4 +76,4 @@ TBD
 
 ## Status
 
-MVP Slice 0 — Read-only journal viewer. Active development.
+MVP Slice 1 — Journal viewer + Message Builder. Slice 2 (Assisted Relay) in design.

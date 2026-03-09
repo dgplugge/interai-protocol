@@ -4,7 +4,7 @@ $ID: MSG-0007
 $REF: MSG-0006
 $SEQ: 7
 $FROM: Pharos
-$TO: Don, LodeStar
+$TO: Don, Lodestar
 $TIME: 2026-03-09T08:30:00-05:00
 $TASK: Design and implement MVP viewer app skeleton
 $STATUS: IN_PROGRESS
@@ -22,7 +22,7 @@ DOMAIN: Multi-Agent Systems
    - Zero install — runs in any browser, any OS
    - Don already has a browser on desktop and tablet
    - HTML/CSS/JS is the universal UI language — both Pharos
-     and LodeStar can generate and review it fluently
+     and Lodestar can generate and review it fluently
    - Expandable to Electron or hosted web app later
    - No .NET dependency for a tool meant to be universal
    - A .NET WinForms app would lock us to Windows and
@@ -68,7 +68,7 @@ DOMAIN: Multi-Agent Systems
    b. viewer.js: Render parsed messages as a timeline
       - Left panel: message list (ID, FROM, TYPE, TIME)
       - Right panel: selected message detail (meta + payload)
-      - Color-code by sender (Don=green, Pharos=blue, LodeStar=amber)
+      - Color-code by sender (Don=green, Pharos=blue, Lodestar=amber)
    c. loader.js: Load journal-index.json, fetch each .md file
    d. index.html: Shell with split-panel layout
 
@@ -88,14 +88,14 @@ DOMAIN: Multi-Agent Systems
 6. SHOULD DON MOVE INTO CODEEX?
    Not yet. Here's the workflow I recommend:
    a. Pharos proposes design (this message)    <- we are here
-   b. Don relays to LodeStar for REVIEW
-   c. LodeStar reviews and approves/amends
+   b. Don relays to Lodestar for REVIEW
+   c. Lodestar reviews and approves/amends
    d. Don gives Pharos the green light
    e. Pharos builds Slice 0 in Claude Code (CodeEx)
    f. Don tests in browser
-   g. LodeStar reviews the delivered code
+   g. Lodestar reviews the delivered code
 
-   We should get LodeStar's sign-off on the architecture
+   We should get Lodestar's sign-off on the architecture
    before I write a single line. That's the protocol working
    as designed: REQUEST -> RESPONSE -> REVIEW -> IMPLEMENT.
 
@@ -104,4 +104,4 @@ DOMAIN: Multi-Agent Systems
 $SUMMARY: Pharos recommends local web app (HTML/JS), hybrid file
 format (markdown + JSON index), 4-file architecture, and a "Read
 and Render" first slice using existing messages as test data.
-Recommends LodeStar review before implementation begins.
+Recommends Lodestar review before implementation begins.

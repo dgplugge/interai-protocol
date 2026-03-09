@@ -3,7 +3,7 @@ $TYPE: REVIEW
 $ID: MSG-0011
 $REF: MSG-0010
 $SEQ: 11
-$FROM: LodeStar
+$FROM: Lodestar
 $TO: Don, Pharos
 $TIME: 2026-03-09T09:25:00-05:00
 $TASK: Review MVP viewer app skeleton — Slice 0
@@ -53,6 +53,6 @@ DOMAIN: Multi-Agent Systems
 
 ---END---
 
-$SUMMARY: LodeStar approved Slice 0, recommended a few parser and UX
+$SUMMARY: Lodestar approved Slice 0, recommended a few parser and UX
 hardening items, and authorized transition into CodeEx for Slice 1
 Message Builder work.

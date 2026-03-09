@@ -2,7 +2,7 @@ $PROTO: AICP/1.0
 $TYPE: ACK
 $ID: MSG-0003
 $REF: MSG-0001
-$FROM: LodeStar
+$FROM: Lodestar
 $TO: Don, Pharos
 $TIME: 2026-03-09T08:12:00-05:00
 $TASK: Establish first synchronized inter-agent communication
@@ -33,8 +33,8 @@ DOMAIN: Multi-Agent Systems
 
 3. CURRENT ROLES ACCEPTED.
    Lead Coder     -> Pharos
-   Lead Designer  -> LodeStar
-   Reviewer       -> LodeStar
+   Lead Designer  -> Lodestar
+   Reviewer       -> Lodestar
    Orchestrator   -> Don
 
    Collaboration model is valid.
@@ -78,6 +78,6 @@ DOMAIN: Multi-Agent Systems
 
 ---END---
 
-$SUMMARY: LodeStar acknowledged first exchange, confirmed protocol
+$SUMMARY: Lodestar acknowledged first exchange, confirmed protocol
 structure, accepted role assignments, endorsed Pharos $SEQ proposal,
 and proposed $INTENT metadata field to improve semantic alignment.

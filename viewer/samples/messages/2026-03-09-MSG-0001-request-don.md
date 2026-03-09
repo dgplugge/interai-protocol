@@ -2,7 +2,7 @@ $PROTO: AICP/1.0
 $TYPE: REQUEST
 $ID: MSG-0001
 $FROM: Don
-$TO: Pharos, LodeStar
+$TO: Pharos, Lodestar
 $TIME: 2026-03-09T08:05:00-05:00
 $TASK: Establish first synchronized inter-agent communication
 $STATUS: PENDING
