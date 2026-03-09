@@ -204,6 +204,59 @@ function addToViewer() {
     toggleBuilder();
 }
 
+// === Slice 2: Relay Message ===
+
+/**
+ * Relays the composed message to the server for persistent storage.
+ * POSTs raw AICP text to /api/relay, which saves the .md file
+ * and updates journal-index.json.
+ */
+async function relayMessage() {
+    const msg = buildMessageFromForm();
+    const validation = validateMessage(msg);
+
+    if (!validation.valid) {
+        showToast('Cannot relay: ' + validation.errors.join('; '), 'error');
+        return;
+    }
+
+    const text = serializeMessage(msg);
+    const relayBtn = document.getElementById('relay-btn');
+
+    // Disable button during relay
+    if (relayBtn) {
+        relayBtn.disabled = true;
+        relayBtn.textContent = 'Relaying...';
+    }
+
+    try {
+        const response = await fetch('/api/relay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: text
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            showToast('Relayed ' + result.id + ' to journal', 'success');
+            // Refresh viewer to show new message
+            await refreshMessages();
+            // Close builder
+            toggleBuilder();
+        } else {
+            showToast('Relay failed: ' + (result.error || 'Unknown error'), 'error');
+        }
+    } catch (e) {
+        showToast('Relay error: ' + e.message, 'error');
+    } finally {
+        if (relayBtn) {
+            relayBtn.disabled = false;
+            relayBtn.textContent = 'Relay Message';
+        }
+    }
+}
+
 // --- Helper functions ---
 
 function getFieldValue(id) {
@@ -319,6 +372,7 @@ function initBuilder() {
                     <input type="hidden" id="b-seq">
                 </form>
                 <div class="builder-actions">
+                    <button id="relay-btn" class="btn btn-relay" onclick="relayMessage()">Relay Message</button>
                     <button id="copy-btn" class="btn btn-primary" onclick="copyPacket()">Copy Packet</button>
                     <button class="btn btn-secondary" onclick="addToViewer()">Add to Viewer</button>
                     <button class="btn btn-ghost" onclick="resetBuilder(); updatePreview();">Reset</button>

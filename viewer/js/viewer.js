@@ -366,6 +366,81 @@ function getPriorityColor(priority) {
     return colors[priority] || '#757575';
 }
 
+// === Slice 2: Refresh & Toast ===
+
+/**
+ * Refreshes the message list from the server.
+ * Reloads journal-index.json with a cache-bust parameter,
+ * re-sorts, re-renders, and selects the newest message.
+ */
+async function refreshMessages() {
+    const cacheBust = `samples/journal-index.json?t=${Date.now()}`;
+    const freshMessages = await autoLoad(cacheBust);
+
+    if (freshMessages.length > 0) {
+        allMessages = freshMessages;
+
+        // Sort by $SEQ if available, otherwise by $TIME
+        allMessages.sort((a, b) => {
+            if (a.meta.seq !== null && b.meta.seq !== null) {
+                return a.meta.seq - b.meta.seq;
+            }
+            return new Date(a.envelope.time) - new Date(b.envelope.time);
+        });
+
+        renderMessageList();
+
+        // Select the newest message (last in sorted order)
+        selectMessage(allMessages.length - 1);
+        const item = document.querySelector(`.message-item[data-index="${allMessages.length - 1}"]`);
+        if (item) item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        const statusEl = document.getElementById('status');
+        if (statusEl) statusEl.textContent = `${allMessages.length} messages loaded`;
+    }
+}
+
+/**
+ * Shows a toast notification.
+ * @param {string} message - The message to display
+ * @param {string} type - 'success', 'error', or 'info'
+ * @param {number} [duration=4000] - Auto-dismiss after ms
+ */
+function showToast(message, type, duration) {
+    if (typeof type === 'undefined') type = 'info';
+    if (typeof duration === 'undefined') duration = 4000;
+
+    // Create container if it doesn't exist
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    // Trigger slide-in animation
+    requestAnimationFrame(function() {
+        toast.classList.add('show');
+    });
+
+    // Auto-dismiss
+    setTimeout(function() {
+        toast.classList.remove('show');
+        setTimeout(function() {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, duration);
+}
+
 // --- Keyboard navigation ---
 document.addEventListener('keydown', (e) => {
     // Don't navigate when typing in builder form

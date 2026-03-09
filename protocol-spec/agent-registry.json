@@ -1,0 +1,33 @@
+{
+  "agents": [
+    {
+      "id": "don",
+      "name": "Don",
+      "type": "human",
+      "roles": ["Orchestrator"],
+      "permissions": ["approve", "assign_roles"],
+      "capabilities": ["coordination", "decision"],
+      "status": "active"
+    },
+    {
+      "id": "pharos",
+      "name": "Pharos",
+      "type": "ai",
+      "platform": "Claude (Anthropic)",
+      "roles": ["Lead Coder"],
+      "permissions": ["edit_code"],
+      "capabilities": ["implementation", "testing"],
+      "status": "active"
+    },
+    {
+      "id": "lodestar",
+      "name": "Lodestar",
+      "type": "ai",
+      "platform": "ChatGPT (OpenAI)",
+      "roles": ["Lead Designer", "Reviewer"],
+      "permissions": ["design_review", "proposal"],
+      "capabilities": ["architecture", "analysis"],
+      "status": "active"
+    }
+  ]
+}

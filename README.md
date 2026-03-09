@@ -47,20 +47,30 @@ The `viewer/` folder contains a lightweight browser-based viewer for AICP messag
 ### Quick Start
 
 ```bash
-cd viewer
-python -m http.server 8080
+# Start the relay server (serves viewer + enables message saving)
+python viewer/server.py
 # Open http://localhost:8080 in your browser
 ```
 
-Or simply open `viewer/index.html` directly in a browser (messages must be embedded for file:// mode).
+Or simply open `viewer/index.html` directly in a browser (messages must be embedded for file:// mode; relay disabled).
 
 ## Repository Structure
 
 ```
 interai-protocol/
-├── viewer/          # Browser-based journal viewer (Slice 0)
-├── protocol-spec/   # AICP specification documents
-├── samples/         # Example messages and journal index
+├── viewer/              # Browser-based journal viewer + relay server
+│   ├── server.py        # Python relay server (Slice 2)
+│   ├── js/              # Client-side JavaScript modules
+│   │   ├── model.js     # Message schema, validation, serialization
+│   │   ├── parser.js    # AICP text parser
+│   │   ├── loader.js    # Message loading (HTTP + embedded)
+│   │   ├── builder.js   # Message composer with relay
+│   │   ├── viewer.js    # Timeline UI renderer
+│   │   └── registry.js  # Agent registry panel (Slice 3)
+│   ├── css/viewer.css   # Dark theme styles
+│   └── samples/         # Viewer's copy of journal data
+├── protocol-spec/       # AICP specification + agent registry
+├── samples/             # Canonical messages and journal index
 └── README.md
 ```
 
@@ -76,4 +86,4 @@ TBD
 
 ## Status
 
-MVP Slice 1 — Journal viewer + Message Builder. Slice 2 (Assisted Relay) in design.
+MVP Slice 3 complete — Journal viewer, Message Builder, Assisted Relay, Agent Registry. Slice 4 (Agent Onboarding) in design.
