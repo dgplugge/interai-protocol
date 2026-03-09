@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AICP Viewer — Inter-AI Communication Protocol</title>
+    <link rel="stylesheet" href="css/viewer.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="app-header">
+            <div>
+                <div class="app-title">AICP Viewer</div>
+                <div class="app-subtitle">Inter-AI Communication Protocol — Journal Viewer</div>
+            </div>
+            <div id="status">Initializing...</div>
+        </div>
+
+        <!-- Body: Split Panel -->
+        <div class="app-body">
+            <!-- Left Panel: Message List -->
+            <div class="list-panel">
+                <div class="list-header">Messages</div>
+                <div id="message-list">
+                    <div class="empty-state">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Message Detail -->
+            <div class="detail-panel" id="message-detail">
+                <div class="empty-state">Select a message to view details</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts (order matters: model → parser → loader → viewer) -->
+    <script src="js/model.js"></script>
+    <script src="js/parser.js"></script>
+    <script src="js/loader.js"></script>
+    <script src="js/viewer.js"></script>
+</body>
+</html>

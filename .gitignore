@@ -1,0 +1,17 @@
+# OS files
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# IDE
+.vs/
+.vscode/
+*.suo
+*.user
+
+# Node (future)
+node_modules/
+
+# Temp
+*.tmp
+*.temp

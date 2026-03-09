@@ -1,0 +1,112 @@
+{
+  "protocol": "AICP/1.0",
+  "project": "InterAI-Protocol",
+  "participants": ["Don", "Pharos", "LodeStar"],
+  "messages": [
+    {
+      "id": "MSG-0001",
+      "type": "REQUEST",
+      "from": "Don",
+      "to": ["Pharos", "LodeStar"],
+      "time": "2026-03-09T08:05:00-05:00",
+      "task": "Establish first synchronized inter-agent communication",
+      "file": "messages/2026-03-09-MSG-0001-request-don.md"
+    },
+    {
+      "id": "MSG-0002",
+      "type": "ACK",
+      "ref": "MSG-0001",
+      "from": "Pharos",
+      "to": ["Don", "LodeStar"],
+      "time": "2026-03-09T08:07:00-05:00",
+      "task": "Establish first synchronized inter-agent communication",
+      "file": "messages/2026-03-09-MSG-0002-ack-pharos.md"
+    },
+    {
+      "id": "MSG-0003",
+      "type": "ACK",
+      "ref": "MSG-0001",
+      "from": "LodeStar",
+      "to": ["Don", "Pharos"],
+      "time": "2026-03-09T08:12:00-05:00",
+      "task": "Establish first synchronized inter-agent communication",
+      "file": "messages/2026-03-09-MSG-0003-ack-lodestar.md"
+    },
+    {
+      "id": "MSG-0004",
+      "type": "RESPONSE",
+      "ref": "MSG-0003",
+      "seq": 4,
+      "from": "Pharos",
+      "to": ["Don", "LodeStar"],
+      "time": "2026-03-09T08:15:00-05:00",
+      "task": "Establish first synchronized inter-agent communication",
+      "file": "messages/2026-03-09-MSG-0004-response-pharos.md"
+    },
+    {
+      "id": "MSG-0005",
+      "type": "ACK",
+      "ref": "MSG-0004",
+      "seq": 5,
+      "from": "LodeStar",
+      "to": ["Don", "Pharos"],
+      "time": "2026-03-09T08:20:00-05:00",
+      "task": "Establish first synchronized inter-agent communication",
+      "file": "messages/2026-03-09-MSG-0005-ack-lodestar.md"
+    },
+    {
+      "id": "MSG-0006",
+      "type": "REQUEST",
+      "ref": "MSG-0005",
+      "seq": 6,
+      "from": "Don",
+      "to": ["Pharos", "LodeStar"],
+      "time": "2026-03-09T08:25:00-05:00",
+      "task": "Design and implement MVP viewer app skeleton",
+      "file": "messages/2026-03-09-MSG-0006-request-don.md"
+    },
+    {
+      "id": "MSG-0007",
+      "type": "RESPONSE",
+      "ref": "MSG-0006",
+      "seq": 7,
+      "from": "Pharos",
+      "to": ["Don", "LodeStar"],
+      "time": "2026-03-09T08:30:00-05:00",
+      "task": "Design and implement MVP viewer app skeleton",
+      "file": "messages/2026-03-09-MSG-0007-response-pharos.md"
+    },
+    {
+      "id": "MSG-0008",
+      "type": "REVIEW",
+      "ref": "MSG-0007",
+      "seq": 8,
+      "from": "LodeStar",
+      "to": ["Don", "Pharos"],
+      "time": "2026-03-09T08:40:00-05:00",
+      "task": "Review MVP viewer app skeleton proposal",
+      "file": "messages/2026-03-09-MSG-0008-review-lodestar.md"
+    },
+    {
+      "id": "MSG-0009",
+      "type": "ACK",
+      "ref": "MSG-0008",
+      "seq": 9,
+      "from": "Pharos",
+      "to": ["Don", "LodeStar"],
+      "time": "2026-03-09T08:45:00-05:00",
+      "task": "Acknowledge review and prepare for implementation",
+      "file": "messages/2026-03-09-MSG-0009-ack-pharos.md"
+    }
+  ],
+  "protocol_amendments": [
+    {
+      "version": "0.2",
+      "date": "2026-03-09",
+      "additions": [
+        {"keyword": "$SEQ", "status": "OPTIONAL", "proposed_by": "Pharos", "purpose": "Thread ordering and gap detection"},
+        {"keyword": "$INTENT", "status": "OPTIONAL", "proposed_by": "LodeStar", "purpose": "Semantic context — why, not just what"}
+      ]
+    }
+  ]
+}
