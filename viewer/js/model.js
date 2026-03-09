@@ -4,7 +4,7 @@
  * for the Inter-AI Communication Protocol.
  *
  * Protocol: AICP/1.0
- * Version: Slice 0 — Read and Render
+ * Version: Slice 1 — Read, Render, and Build
  */
 
 // Required envelope keywords (must be present in every message)
@@ -146,12 +146,15 @@ function getSenderColor(sender) {
 
 /**
  * Formats an ISO 8601 timestamp into a human-readable string.
+ * Handles Invalid Date gracefully (per LodeStar review MSG-0011).
  * @param {string} isoTime - ISO 8601 timestamp
  * @returns {string} Formatted time string
  */
 function formatTime(isoTime) {
+    if (!isoTime) return '';
     try {
         const date = new Date(isoTime);
+        if (isNaN(date.getTime())) return isoTime; // Return raw if invalid
         return date.toLocaleString('en-US', {
             month: 'short',
             day: 'numeric',
@@ -164,10 +167,126 @@ function formatTime(isoTime) {
     }
 }
 
+/**
+ * Generates a UUID v4 string for message IDs.
+ * @returns {string} UUID string like "MSG-xxxxxxxx"
+ */
+function generateMessageId() {
+    const hex = () => Math.floor(Math.random() * 0x10000).toString(16).padStart(4, '0');
+    return `MSG-${hex()}${hex()}`;
+}
+
+/**
+ * Returns the current time as an ISO 8601 string with timezone offset.
+ * @returns {string} ISO 8601 timestamp
+ */
+function nowISO() {
+    const now = new Date();
+    const offset = -now.getTimezoneOffset();
+    const sign = offset >= 0 ? '+' : '-';
+    const pad = (n) => String(Math.abs(n)).padStart(2, '0');
+    const hours = Math.floor(Math.abs(offset) / 60);
+    const minutes = Math.abs(offset) % 60;
+    return now.getFullYear() +
+        '-' + pad(now.getMonth() + 1) +
+        '-' + pad(now.getDate()) +
+        'T' + pad(now.getHours()) +
+        ':' + pad(now.getMinutes()) +
+        ':' + pad(now.getSeconds()) +
+        sign + pad(hours) + ':' + pad(minutes);
+}
+
+/**
+ * Creates a draft message with auto-filled default fields.
+ * Used by the Message Builder to pre-populate required fields.
+ * @param {Object} [defaults] - Optional overrides for default values
+ * @returns {Object} Normalized message object with defaults filled in
+ */
+function createDraftMessage(defaults = {}) {
+    const fields = {
+        '$PROTO':    defaults.proto    || 'AICP/1.0',
+        '$TYPE':     defaults.type     || 'REQUEST',
+        '$ID':       defaults.id       || generateMessageId(),
+        '$FROM':     defaults.from     || '',
+        '$TO':       defaults.to       || '',
+        '$TIME':     defaults.time     || nowISO(),
+        '$TASK':     defaults.task     || '',
+        '$STATUS':   defaults.status   || 'PENDING',
+        '$REF':      defaults.ref      || null,
+        '$SEQ':      defaults.seq      || null,
+        '$PRIORITY': defaults.priority || null,
+        '$ROLE':     defaults.role     || null,
+        '$INTENT':   defaults.intent   || null
+    };
+
+    // Add custom fields
+    if (defaults.custom) {
+        for (const [key, value] of Object.entries(defaults.custom)) {
+            fields[key] = value;
+        }
+    }
+
+    return createMessage(fields, defaults.payload || '', '');
+}
+
+/**
+ * Serializes a normalized message object back to canonical AICP text.
+ * This is the inverse of parseMessage().
+ * @param {Object} msg - Normalized message object
+ * @returns {string} Canonical AICP message text
+ */
+function serializeMessage(msg) {
+    const lines = [];
+
+    // Envelope (required)
+    lines.push(`$PROTO: ${msg.envelope.proto}`);
+    lines.push(`$TYPE: ${msg.envelope.type}`);
+    lines.push(`$ID: ${msg.envelope.id}`);
+    if (msg.meta.ref) lines.push(`$REF: ${msg.meta.ref}`);
+    if (msg.meta.seq !== null) lines.push(`$SEQ: ${msg.meta.seq}`);
+    lines.push(`$FROM: ${msg.envelope.from}`);
+    lines.push(`$TO: ${msg.envelope.to}`);
+    lines.push(`$TIME: ${msg.envelope.time}`);
+
+    // Meta
+    if (msg.meta.task) lines.push(`$TASK: ${msg.meta.task}`);
+    if (msg.meta.status) lines.push(`$STATUS: ${msg.meta.status}`);
+    if (msg.meta.priority) lines.push(`$PRIORITY: ${msg.meta.priority}`);
+    if (msg.meta.role) lines.push(`$ROLE: ${msg.meta.role}`);
+    if (msg.meta.intent) lines.push(`$INTENT: ${msg.meta.intent}`);
+    if (msg.meta.context) lines.push(`$CONTEXT: ${msg.meta.context}`);
+    if (msg.meta.accept) lines.push(`$ACCEPT: ${msg.meta.accept}`);
+
+    // Custom fields
+    for (const [key, value] of Object.entries(msg.custom || {})) {
+        lines.push(`${key}: ${value}`);
+    }
+
+    // Payload
+    if (msg.payload) {
+        lines.push('');
+        lines.push('---PAYLOAD---');
+        lines.push(msg.payload);
+        lines.push('---END---');
+    }
+
+    // Audit
+    if (msg.audit.summary || msg.audit.changes || msg.audit.checksum) {
+        lines.push('');
+        if (msg.audit.summary) lines.push(`$SUMMARY: ${msg.audit.summary}`);
+        if (msg.audit.changes) lines.push(`$CHANGES: ${msg.audit.changes}`);
+        if (msg.audit.checksum) lines.push(`$CHECKSUM: ${msg.audit.checksum}`);
+    }
+
+    return lines.join('\n');
+}
+
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-        createMessage, validateMessage, getSenderColor, formatTime,
+        createMessage, createDraftMessage, serializeMessage,
+        validateMessage, getSenderColor, formatTime,
+        generateMessageId, nowISO,
         REQUIRED_KEYWORDS, MESSAGE_TYPES, STATUS_VALUES, PRIORITY_VALUES,
         ENVELOPE_KEYWORDS, META_KEYWORDS, AUDIT_KEYWORDS, SENDER_COLORS
     };

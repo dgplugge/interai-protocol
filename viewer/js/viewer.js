@@ -3,16 +3,23 @@
  * Renders parsed AICP messages as an interactive timeline.
  *
  * Protocol: AICP/1.0
- * Version: Slice 0 — Read and Render
+ * Version: Slice 1 — Read, Render, and Build
  *
  * Layout:
- *   Left panel:  Message list (ID, FROM, TYPE, TIME)
- *   Right panel: Selected message detail (meta + payload)
+ *   Left panel:  Message list (ID, FROM, TYPE, TIME) with validation badges
+ *   Right panel: Selected message detail (meta + payload) with toolbar
+ *
+ * Slice 1 additions:
+ *   - Copy Packet button (copies serialized AICP text to clipboard)
+ *   - Raw/formatted toggle
+ *   - Validation badges in message list
+ *   - Builder integration
  */
 
 // Global state
 let allMessages = [];
 let selectedIndex = -1;
+let showRaw = false;
 
 /**
  * Initializes the viewer — loads messages and renders the UI.
@@ -91,6 +98,12 @@ function renderMessageList() {
         msgId.className = 'msg-id';
         msgId.textContent = msg.envelope.id;
 
+        // Validation badge
+        const validation = validateMessage(msg);
+        const validBadge = document.createElement('span');
+        validBadge.className = `validation-badge ${validation.valid ? 'valid' : 'invalid'}`;
+        validBadge.title = validation.valid ? 'Valid' : validation.errors.join(', ');
+
         // Time
         const time = document.createElement('span');
         time.className = 'msg-time';
@@ -107,6 +120,7 @@ function renderMessageList() {
         header.className = 'msg-header-row';
         header.appendChild(typeBadge);
         header.appendChild(sender);
+        header.appendChild(validBadge);
         header.appendChild(msgId);
 
         // Build item
@@ -116,6 +130,11 @@ function renderMessageList() {
 
         // Click handler
         item.addEventListener('click', () => selectMessage(index));
+
+        // Maintain selection
+        if (index === selectedIndex) {
+            item.classList.add('selected');
+        }
 
         listEl.appendChild(item);
     });
@@ -130,6 +149,7 @@ function selectMessage(index) {
 
     // Update selection state
     selectedIndex = index;
+    showRaw = false; // Reset to formatted view on selection change
 
     // Update list item highlighting
     document.querySelectorAll('.message-item').forEach((item, i) => {
@@ -138,6 +158,49 @@ function selectMessage(index) {
 
     const msg = allMessages[index];
     renderDetail(msg);
+}
+
+/**
+ * Toggles between formatted and raw view.
+ */
+function toggleRawView() {
+    showRaw = !showRaw;
+    if (selectedIndex >= 0 && selectedIndex < allMessages.length) {
+        renderDetail(allMessages[selectedIndex]);
+    }
+}
+
+/**
+ * Copies the selected message as AICP text to clipboard.
+ */
+async function copyDetailPacket() {
+    if (selectedIndex < 0) return;
+
+    const msg = allMessages[selectedIndex];
+    const text = msg.raw || serializeMessage(msg);
+
+    try {
+        await navigator.clipboard.writeText(text);
+    } catch (e) {
+        // Fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+    }
+
+    const btn = document.getElementById('copy-detail-btn');
+    if (btn) {
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = original;
+            btn.classList.remove('copied');
+        }, 1500);
+    }
 }
 
 /**
@@ -150,8 +213,19 @@ function renderDetail(msg) {
 
     const colors = getSenderColor(msg.envelope.from);
 
-    // Build detail HTML
-    let html = '';
+    // Toolbar
+    let html = '<div class="detail-toolbar">';
+    html += `<button id="copy-detail-btn" class="btn-copy-detail" onclick="copyDetailPacket()">Copy Packet</button>`;
+    html += `<button class="btn-raw-toggle ${showRaw ? 'active' : ''}" onclick="toggleRawView()">${showRaw ? 'Formatted' : 'Raw'}</button>`;
+    html += '</div>';
+
+    // Raw view mode
+    if (showRaw) {
+        const rawText = msg.raw || serializeMessage(msg);
+        html += `<div class="raw-content">${escapeHtml(rawText)}</div>`;
+        detailEl.innerHTML = html;
+        return;
+    }
 
     // Envelope section
     html += '<div class="detail-section">';
@@ -294,6 +368,11 @@ function getPriorityColor(priority) {
 
 // --- Keyboard navigation ---
 document.addEventListener('keydown', (e) => {
+    // Don't navigate when typing in builder form
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        return;
+    }
+
     if (e.key === 'ArrowDown' && selectedIndex < allMessages.length - 1) {
         e.preventDefault();
         selectMessage(selectedIndex + 1);
@@ -305,6 +384,10 @@ document.addEventListener('keydown', (e) => {
         selectMessage(selectedIndex - 1);
         const item = document.querySelector(`.message-item[data-index="${selectedIndex}"]`);
         if (item) item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    // Escape closes builder
+    if (e.key === 'Escape' && builderVisible) {
+        toggleBuilder();
     }
 });
 
