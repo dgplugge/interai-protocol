@@ -141,6 +141,39 @@
       "time": "2026-03-09T09:36:00-05:00",
       "task": "Acknowledge Slice 0 review and plan Slice 1",
       "file": "messages/2026-03-09-MSG-0013-ack-lodestar.md"
+    },
+    {
+      "id": "MSG-239580d5",
+      "type": "REQUEST",
+      "ref": "MSG-0013",
+      "seq": 14,
+      "from": "Don",
+      "to": ["Pharos", "LodeStar"],
+      "time": "2026-03-09T10:45:00-04:00",
+      "task": "Review Slice 1 — Message Builder implementation",
+      "note": "First Builder-generated message; used random hex ID before sequential fix"
+    },
+    {
+      "id": "MSG-0015",
+      "type": "ACK",
+      "ref": "MSG-239580d5",
+      "seq": 15,
+      "from": "LodeStar",
+      "to": ["Don", "Pharos"],
+      "time": "2026-03-09T10:58:00-04:00",
+      "task": "Review Slice 1 — Message Builder implementation",
+      "file": "messages/2026-03-09-MSG-0015-ack-lodestar.md"
+    },
+    {
+      "id": "MSG-0016",
+      "type": "ACK",
+      "ref": "MSG-0015",
+      "seq": 16,
+      "from": "Pharos",
+      "to": ["Don", "LodeStar"],
+      "time": "2026-03-09T11:10:00-04:00",
+      "task": "Acknowledge Slice 1 Builder review and address normalization notes",
+      "file": "messages/2026-03-09-MSG-0016-ack-pharos.md"
     }
   ],
   "protocol_amendments": [
