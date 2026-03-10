@@ -483,6 +483,19 @@
       "file": "messages/2026-03-09-MSG-0034-ack-don.md",
       "ref": "MSG-0033",
       "seq": 34
+    },
+    {
+      "id": "MSG-0035",
+      "type": "REQUEST",
+      "from": "Don",
+      "to": [
+        "Lodestar"
+      ],
+      "time": "2026-03-09T15:02:40-04:00",
+      "task": "Review: Approve: Design Slice 7 — n8n Workflow Automation Layer",
+      "file": "messages/2026-03-09-MSG-0035-request-don.md",
+      "ref": "MSG-0034",
+      "seq": 35
     }
   ],
   "protocol_amendments": [
