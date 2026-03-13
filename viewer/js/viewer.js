@@ -3,13 +3,14 @@
  * Renders parsed AICP messages as an interactive timeline.
  *
  * Protocol: AICP/1.0
- * Version: Slice 1 — Read, Render, and Build
+ * Version: Slice 8 — Multi-Project Support
  *
  * Layout:
  *   Left panel:  Message list (ID, FROM, TYPE, TIME) with validation badges
  *   Right panel: Selected message detail (meta + payload) with toolbar
  *
- * Slice 1 additions:
+ * Features:
+ *   - Multi-project support with project selector dropdown
  *   - Copy Packet button (copies serialized AICP text to clipboard)
  *   - Raw/formatted toggle
  *   - Validation badges in message list
@@ -20,16 +21,26 @@
 let allMessages = [];
 let selectedIndex = -1;
 let showRaw = false;
+let activeProject = 'all';  // 'all' or a project ID
+let projectList = [];        // Array of {id, name, color, messageCount}
 
 /**
- * Initializes the viewer — loads messages and renders the UI.
+ * Initializes the viewer — loads projects, messages, and renders the UI.
  */
 async function initViewer() {
     const statusEl = document.getElementById('status');
+    if (statusEl) statusEl.textContent = 'Loading projects...';
+
+    // Load project list
+    projectList = await loadAllProjects();
+
+    // Populate project selector
+    populateProjectSelector();
+
     if (statusEl) statusEl.textContent = 'Loading messages...';
 
-    // Auto-load: try index first, then embedded
-    allMessages = await autoLoad('samples/journal-index.json');
+    // Auto-load: multi-project API, then index, then embedded
+    allMessages = await autoLoad('samples/journal-index.json', activeProject);
 
     if (allMessages.length === 0) {
         if (statusEl) statusEl.textContent = 'No messages found. Check console for details.';
@@ -37,12 +48,7 @@ async function initViewer() {
     }
 
     // Sort by $SEQ if available, otherwise by $TIME
-    allMessages.sort((a, b) => {
-        if (a.meta.seq !== null && b.meta.seq !== null) {
-            return a.meta.seq - b.meta.seq;
-        }
-        return new Date(a.envelope.time) - new Date(b.envelope.time);
-    });
+    sortMessages();
 
     // Validate messages
     allMessages.forEach((msg, i) => {
@@ -59,9 +65,107 @@ async function initViewer() {
         selectMessage(0);
     }
 
-    if (statusEl) {
-        statusEl.textContent = `${allMessages.length} messages loaded`;
+    updateStatusPill();
+}
+
+/**
+ * Sorts allMessages by $SEQ (if available) then by $TIME.
+ */
+function sortMessages() {
+    allMessages.sort((a, b) => {
+        if (a.meta.seq !== null && b.meta.seq !== null) {
+            return a.meta.seq - b.meta.seq;
+        }
+        return new Date(a.envelope.time) - new Date(b.envelope.time);
+    });
+}
+
+/**
+ * Returns the filtered message list based on activeProject.
+ * @returns {Object[]} Filtered messages
+ */
+function getFilteredMessages() {
+    if (activeProject === 'all') return allMessages;
+    return allMessages.filter(m => m._projectId === activeProject);
+}
+
+/**
+ * Populates the project selector dropdown with loaded projects.
+ */
+function populateProjectSelector() {
+    const sel = document.getElementById('project-selector');
+    if (!sel) return;
+
+    // Clear existing options (except "All Projects")
+    sel.innerHTML = '';
+
+    // "All Projects" option
+    const allOpt = document.createElement('option');
+    allOpt.value = 'all';
+    allOpt.textContent = 'All Projects';
+    sel.appendChild(allOpt);
+
+    // One option per project
+    projectList.forEach(proj => {
+        const opt = document.createElement('option');
+        opt.value = proj.id;
+        opt.textContent = proj.name;
+        opt.style.color = proj.color;
+        sel.appendChild(opt);
+    });
+
+    sel.value = activeProject;
+}
+
+/**
+ * Handles project selector change.
+ */
+function onProjectChange() {
+    const sel = document.getElementById('project-selector');
+    if (!sel) return;
+
+    activeProject = sel.value;
+    renderMessageList();
+
+    // Select first message in filtered list
+    const filtered = getFilteredMessages();
+    if (filtered.length > 0) {
+        const globalIdx = allMessages.indexOf(filtered[0]);
+        selectMessage(globalIdx);
+    } else {
+        selectedIndex = -1;
+        const detailEl = document.getElementById('message-detail');
+        if (detailEl) detailEl.innerHTML = '<div class="empty-state">No messages in this project</div>';
     }
+
+    updateStatusPill();
+}
+
+/**
+ * Updates the status pill text with message count and project info.
+ */
+function updateStatusPill() {
+    const statusEl = document.getElementById('status');
+    if (!statusEl) return;
+
+    const filtered = getFilteredMessages();
+    if (activeProject === 'all') {
+        statusEl.textContent = `${filtered.length} messages (all projects)`;
+    } else {
+        const proj = projectList.find(p => p.id === activeProject);
+        const name = proj ? proj.name : activeProject;
+        statusEl.textContent = `${filtered.length} messages (${name})`;
+    }
+}
+
+/**
+ * Gets the project color for a given project ID.
+ * @param {string} projectId - Project ID
+ * @returns {string} Hex color
+ */
+function getProjectColor(projectId) {
+    const proj = projectList.find(p => p.id === projectId);
+    return proj ? proj.color : '#888888';
 }
 
 /**
@@ -73,10 +177,13 @@ function renderMessageList() {
 
     listEl.innerHTML = '';
 
-    allMessages.forEach((msg, index) => {
+    const filtered = getFilteredMessages();
+
+    filtered.forEach((msg) => {
+        const globalIndex = allMessages.indexOf(msg);
         const item = document.createElement('div');
         item.className = 'message-item';
-        item.dataset.index = index;
+        item.dataset.index = globalIndex;
 
         const colors = getSenderColor(msg.envelope.from);
         item.style.borderLeftColor = colors.border;
@@ -123,16 +230,26 @@ function renderMessageList() {
         header.appendChild(validBadge);
         header.appendChild(msgId);
 
+        // Project tag (show when viewing all projects)
+        if (activeProject === 'all' && msg._projectId) {
+            const projTag = document.createElement('span');
+            projTag.className = 'project-tag';
+            projTag.textContent = msg._projectId;
+            projTag.style.borderColor = getProjectColor(msg._projectId);
+            projTag.style.color = getProjectColor(msg._projectId);
+            header.appendChild(projTag);
+        }
+
         // Build item
         item.appendChild(header);
         item.appendChild(task);
         item.appendChild(time);
 
         // Click handler
-        item.addEventListener('click', () => selectMessage(index));
+        item.addEventListener('click', () => selectMessage(globalIndex));
 
         // Maintain selection
-        if (index === selectedIndex) {
+        if (globalIndex === selectedIndex) {
             item.classList.add('selected');
         }
 
@@ -152,8 +269,8 @@ function selectMessage(index) {
     showRaw = false; // Reset to formatted view on selection change
 
     // Update list item highlighting
-    document.querySelectorAll('.message-item').forEach((item, i) => {
-        item.classList.toggle('selected', i === index);
+    document.querySelectorAll('.message-item').forEach((item) => {
+        item.classList.toggle('selected', parseInt(item.dataset.index) === index);
     });
 
     const msg = allMessages[index];
@@ -374,33 +491,28 @@ function getPriorityColor(priority) {
 
 /**
  * Refreshes the message list from the server.
- * Reloads journal-index.json with a cache-bust parameter,
+ * Reloads all project messages with a cache-bust parameter,
  * re-sorts, re-renders, and selects the newest message.
  */
 async function refreshMessages() {
-    const cacheBust = `samples/journal-index.json?t=${Date.now()}`;
-    const freshMessages = await autoLoad(cacheBust);
+    const freshMessages = await autoLoad(`samples/journal-index.json?t=${Date.now()}`, activeProject);
 
     if (freshMessages.length > 0) {
         allMessages = freshMessages;
-
-        // Sort by $SEQ if available, otherwise by $TIME
-        allMessages.sort((a, b) => {
-            if (a.meta.seq !== null && b.meta.seq !== null) {
-                return a.meta.seq - b.meta.seq;
-            }
-            return new Date(a.envelope.time) - new Date(b.envelope.time);
-        });
-
+        sortMessages();
         renderMessageList();
 
-        // Select the newest message (last in sorted order)
-        selectMessage(allMessages.length - 1);
-        const item = document.querySelector(`.message-item[data-index="${allMessages.length - 1}"]`);
-        if (item) item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Select the newest message in the filtered view
+        const filtered = getFilteredMessages();
+        if (filtered.length > 0) {
+            const lastMsg = filtered[filtered.length - 1];
+            const globalIdx = allMessages.indexOf(lastMsg);
+            selectMessage(globalIdx);
+            const item = document.querySelector(`.message-item[data-index="${globalIdx}"]`);
+            if (item) item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
 
-        const statusEl = document.getElementById('status');
-        if (statusEl) statusEl.textContent = `${allMessages.length} messages loaded`;
+        updateStatusPill();
     }
 }
 
@@ -479,17 +591,28 @@ document.addEventListener('keydown', (e) => {
         return;
     }
 
-    if (e.key === 'ArrowDown' && selectedIndex < allMessages.length - 1) {
+    const filtered = getFilteredMessages();
+
+    if (e.key === 'ArrowDown') {
         e.preventDefault();
-        selectMessage(selectedIndex + 1);
-        const item = document.querySelector(`.message-item[data-index="${selectedIndex}"]`);
-        if (item) item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Find next message in filtered list
+        const currentFilterIdx = filtered.findIndex(m => allMessages.indexOf(m) === selectedIndex);
+        if (currentFilterIdx < filtered.length - 1) {
+            const nextGlobalIdx = allMessages.indexOf(filtered[currentFilterIdx + 1]);
+            selectMessage(nextGlobalIdx);
+            const item = document.querySelector(`.message-item[data-index="${nextGlobalIdx}"]`);
+            if (item) item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
     }
-    if (e.key === 'ArrowUp' && selectedIndex > 0) {
+    if (e.key === 'ArrowUp') {
         e.preventDefault();
-        selectMessage(selectedIndex - 1);
-        const item = document.querySelector(`.message-item[data-index="${selectedIndex}"]`);
-        if (item) item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        const currentFilterIdx = filtered.findIndex(m => allMessages.indexOf(m) === selectedIndex);
+        if (currentFilterIdx > 0) {
+            const prevGlobalIdx = allMessages.indexOf(filtered[currentFilterIdx - 1]);
+            selectMessage(prevGlobalIdx);
+            const item = document.querySelector(`.message-item[data-index="${prevGlobalIdx}"]`);
+            if (item) item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
     }
     // Escape closes builder
     if (e.key === 'Escape' && builderVisible) {

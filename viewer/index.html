@@ -15,6 +15,9 @@
                 <div class="app-subtitle">Inter-AI Communication Protocol — Journal Viewer</div>
             </div>
             <div class="header-controls">
+                <select id="project-selector" class="project-selector" onchange="onProjectChange()">
+                    <option value="all">All Projects</option>
+                </select>
                 <button id="builder-toggle" class="btn-builder-toggle" onclick="toggleBuilder()">New Message</button>
                 <button id="agents-toggle" class="btn-agents-toggle" onclick="toggleAgentPanel()">Agents</button>
                 <div id="status">Initializing...</div>

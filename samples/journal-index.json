@@ -186,20 +186,6 @@
       "file": "messages/2026-03-09-MSG-0013-ack-lodestar.md"
     },
     {
-      "id": "MSG-239580d5",
-      "type": "REQUEST",
-      "ref": "MSG-0013",
-      "seq": 14,
-      "from": "Don",
-      "to": [
-        "Pharos",
-        "Lodestar"
-      ],
-      "time": "2026-03-09T10:45:00-04:00",
-      "task": "Review Slice 1 — Message Builder implementation",
-      "note": "First Builder-generated message; used random hex ID before sequential fix"
-    },
-    {
       "id": "MSG-0015",
       "type": "REVIEW",
       "ref": "MSG-0014",
@@ -254,20 +240,6 @@
       "time": "2026-03-09T11:30:00-04:00",
       "task": "Acknowledge Slice 1 REVIEW approval and prepare Slice 2",
       "file": "messages/2026-03-09-MSG-0018-ack-pharos.md"
-    },
-    {
-      "id": "MSG-0019",
-      "type": "ACK",
-      "ref": "MSG-0018",
-      "seq": 19,
-      "from": "Lodestar",
-      "to": [
-        "Don",
-        "Pharos"
-      ],
-      "time": "2026-03-09T11:45:00-04:00",
-      "task": "Acknowledge naming normalization and Slice 2 readiness",
-      "note": "Content relayed verbally; full AICP text not captured"
     },
     {
       "id": "MSG-0020",
@@ -496,6 +468,128 @@
       "file": "messages/2026-03-09-MSG-0035-request-don.md",
       "ref": "MSG-0034",
       "seq": 35
+    },
+    {
+      "id": "MSG-0036",
+      "type": "REQUEST",
+      "from": "Don",
+      "to": [
+        "Pharos",
+        "Lodestar"
+      ],
+      "time": "2026-03-10T16:32:30-04:00",
+      "task": "",
+      "file": "messages/2026-03-10-MSG-0036-request-don.md",
+      "ref": "OH-MSG-0005",
+      "seq": 38
+    },
+    {
+      "id": "MSG-0037",
+      "type": "REQUEST",
+      "from": "Don",
+      "to": [
+        "Pharos",
+        "Lodestar"
+      ],
+      "time": "2026-03-10T16:33:17-04:00",
+      "task": "n8n is running locally",
+      "file": "messages/2026-03-10-MSG-0037-request-don.md",
+      "ref": "MSG-0036",
+      "seq": 39
+    },
+    {
+      "id": "MSG-0038",
+      "type": "REQUEST",
+      "from": "Don",
+      "to": [
+        "Pharos",
+        "Lodestar"
+      ],
+      "time": "2026-03-10T16:37:31-04:00",
+      "task": "Incorporate local n8n",
+      "file": "messages/2026-03-10-MSG-0038-request-don.md",
+      "ref": "MSG-0037",
+      "seq": 40
+    },
+    {
+      "id": "MSG-0039",
+      "type": "RESPONSE",
+      "from": "Lodestar",
+      "to": [
+        "Don",
+        "Pharos"
+      ],
+      "time": "2026-03-10T17:00:00-04:00",
+      "task": "Incorporate local n8n",
+      "file": "messages/2026-03-10-MSG-0039-response-lodestar.md",
+      "ref": "MSG-0038",
+      "seq": 41
+    },
+    {
+      "id": "MSG-0040",
+      "type": "UPDATE",
+      "from": "Don",
+      "to": [
+        "Pharos"
+      ],
+      "time": "2026-03-10T17:30:00-04:00",
+      "task": "Brief Pharos on n8n AICP Ingress Parser progress",
+      "file": "messages/2026-03-10-MSG-0040-update-don.md",
+      "ref": "MSG-0039",
+      "seq": 42
+    },
+    {
+      "id": "MSG-0041",
+      "type": "REQUEST",
+      "from": "Pharos",
+      "to": [
+        "Lodestar"
+      ],
+      "time": "2026-03-10T17:45:00-04:00",
+      "task": "Request n8n workflow artifacts for architectural review",
+      "file": "messages/2026-03-10-MSG-0041-request-pharos.md",
+      "ref": "MSG-0040",
+      "seq": 43
+    },
+    {
+      "id": "MSG-0042",
+      "type": "RESPONSE",
+      "from": "Lodestar",
+      "to": [
+        "Pharos"
+      ],
+      "time": "2026-03-10T17:55:00-04:00",
+      "task": "Provide n8n workflow artifacts for architectural review",
+      "file": "messages/2026-03-10-MSG-0042-response-lodestar.md",
+      "ref": "MSG-0041",
+      "seq": 44
+    },
+    {
+      "id": "MSG-0043",
+      "type": "RESPONSE",
+      "from": "Pharos",
+      "to": [
+        "Lodestar",
+        "Don"
+      ],
+      "time": "2026-03-10T18:10:00-04:00",
+      "task": "Architectural review of n8n AICP Ingress Parser and Switch routing plan",
+      "file": "messages/2026-03-10-MSG-0043-response-pharos.md",
+      "ref": "MSG-0042",
+      "seq": 45
+    },
+    {
+      "id": "MSG-0044",
+      "type": "UPDATE",
+      "from": "Don",
+      "to": [
+        "Pharos"
+      ],
+      "time": "2026-03-10T23:05:00-04:00",
+      "task": "Interim status update on n8n routing implementation",
+      "file": "messages/2026-03-10-MSG-0044-update-don.md",
+      "ref": "MSG-0043",
+      "seq": 46
     }
   ],
   "protocol_amendments": [

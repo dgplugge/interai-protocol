@@ -1,0 +1,16 @@
+{
+  "projects": [
+    {
+      "id": "InterAI-Protocol",
+      "name": "Inter-AI Protocol",
+      "path": "H:/Code/Agent-Journals/InterAI-Protocol",
+      "color": "#4a9eff"
+    },
+    {
+      "id": "OperatorHub",
+      "name": "Operator Hub",
+      "path": "H:/Code/Agent-Journals/OperatorHub",
+      "color": "#4aff9e"
+    }
+  ]
+}

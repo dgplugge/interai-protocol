@@ -19,6 +19,10 @@ Every AICP message has four segments:
 | **PAYLOAD** | Freeform content (markdown) between `---PAYLOAD---` and `---END---` | No |
 | **AUDIT** | Verification (`$SUMMARY`, `$CHANGES`, `$CHECKSUM`) | No |
 
+### Quick Links (Forge onboarding)
+- Cheat sheet: `notes/forge-aicp-cheatsheet.md`
+- Sample messages (good patterns: MSG-0006…MSG-0010): `samples/messages/`
+
 ### Example Message
 
 ```

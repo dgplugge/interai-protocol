@@ -929,6 +929,48 @@ body {
     color: #fff;
 }
 
+/* === Slice 8: Project Selector === */
+
+.project-selector {
+    padding: 6px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+    min-width: 140px;
+}
+
+.project-selector:focus {
+    border-color: var(--accent-blue);
+}
+
+.project-selector:hover {
+    border-color: var(--accent-blue);
+}
+
+.project-selector option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Project tag in message list */
+.project-tag {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 8px;
+    border: 1px solid;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    margin-left: 4px;
+}
+
 /* === Slice 4: Extended Status Dots === */
 
 .status-pending {

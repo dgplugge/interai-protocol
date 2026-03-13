@@ -73,7 +73,9 @@ function createMessage(fields, payload, rawText) {
             checksum: fields['$CHECKSUM'] || null
         },
         // Raw text for debugging
-        raw: rawText || ''
+        raw: rawText || '',
+        // Project ID (set by loader, not serialized)
+        _projectId: null
     };
 }
 
@@ -182,20 +184,36 @@ function generateMessageId() {
  * Falls back to generateMessageId() if no sequential IDs found.
  * @returns {string} Next sequential ID like "MSG-0014"
  */
-function generateNextMessageId() {
+function generateNextMessageId(projectFilter) {
     if (typeof allMessages === 'undefined' || !allMessages || allMessages.length === 0) {
         return generateMessageId();
     }
+
+    // If a project filter is given, only scan messages in that project
+    const msgs = (projectFilter && projectFilter !== 'all')
+        ? allMessages.filter(m => m._projectId === projectFilter)
+        : allMessages;
+
+    if (msgs.length === 0) return generateMessageId();
+
+    // Detect the ID prefix pattern for this project (e.g., "MSG-" or "OH-MSG-")
     let maxNum = 0;
-    allMessages.forEach(msg => {
-        const match = msg.envelope.id.match(/^MSG-(\d+)$/);
+    let prefix = 'MSG-';
+
+    msgs.forEach(msg => {
+        // Match patterns like MSG-0001, OH-MSG-0001, etc.
+        const match = msg.envelope.id.match(/^((?:[A-Z]+-)?MSG-)(\d+)$/);
         if (match) {
-            const num = parseInt(match[1], 10);
-            if (num > maxNum) maxNum = num;
+            const num = parseInt(match[2], 10);
+            if (num > maxNum) {
+                maxNum = num;
+                prefix = match[1];
+            }
         }
     });
+
     if (maxNum === 0) return generateMessageId();
-    return `MSG-${String(maxNum + 1).padStart(4, '0')}`;
+    return `${prefix}${String(maxNum + 1).padStart(4, '0')}`;
 }
 
 /**

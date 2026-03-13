@@ -45,7 +45,8 @@ function resetBuilder() {
     // Auto-fill defaults with smart sequential values
     setFieldValue('b-proto', 'AICP/1.0');
     setFieldValue('b-type', 'REQUEST');
-    setFieldValue('b-id', generateNextMessageId());
+    var projDefaults = getActiveProjectDefaults();
+    setFieldValue('b-id', generateNextMessageId(projDefaults.project));
     setFieldValue('b-from', 'Don');
     setFieldValue('b-to', 'Pharos, Lodestar');
     setFieldValue('b-time', nowISO());
@@ -56,8 +57,9 @@ function resetBuilder() {
     setFieldValue('b-intent', '');
     setFieldValue('b-ref', getLastMessageId() || '');
     setFieldValue('b-seq', getNextSeq());
-    setFieldValue('b-project', 'InterAI-Protocol');
-    setFieldValue('b-domain', 'Multi-Agent Systems');
+    // Set project/domain from active project
+    setFieldValue('b-project', projDefaults.project);
+    setFieldValue('b-domain', projDefaults.domain);
     setFieldValue('b-payload', '');
 }
 
@@ -376,9 +378,10 @@ function prefillApproval(refMsg) {
     }
 
     // Pre-fill as approval ACK
+    var approveDefaults = getActiveProjectDefaults(refMsg);
     setFieldValue('b-proto', 'AICP/1.0');
     setFieldValue('b-type', 'ACK');
-    setFieldValue('b-id', generateNextMessageId());
+    setFieldValue('b-id', generateNextMessageId(approveDefaults.project));
     setFieldValue('b-from', 'Don');
     setFieldValue('b-to', recipients.join(', '));
     setFieldValue('b-time', nowISO());
@@ -389,8 +392,8 @@ function prefillApproval(refMsg) {
     setFieldValue('b-intent', 'Orchestrator authorization to proceed');
     setFieldValue('b-ref', refMsg.envelope.id);
     setFieldValue('b-seq', getNextSeq());
-    setFieldValue('b-project', 'InterAI-Protocol');
-    setFieldValue('b-domain', 'Multi-Agent Systems');
+    setFieldValue('b-project', approveDefaults.project);
+    setFieldValue('b-domain', approveDefaults.domain);
     setFieldValue('b-payload', 'APPROVED.\n\nProceeding as proposed.');
 
     updatePreview();
@@ -404,9 +407,10 @@ function prefillApproval(refMsg) {
 function prefillRequestReview(refMsg) {
     if (!builderVisible) toggleBuilder();
 
+    var reviewDefaults = getActiveProjectDefaults(refMsg);
     setFieldValue('b-proto', 'AICP/1.0');
     setFieldValue('b-type', 'REQUEST');
-    setFieldValue('b-id', generateNextMessageId());
+    setFieldValue('b-id', generateNextMessageId(reviewDefaults.project));
     setFieldValue('b-from', 'Don');
     setFieldValue('b-to', 'Lodestar');
     setFieldValue('b-time', nowISO());
@@ -417,8 +421,8 @@ function prefillRequestReview(refMsg) {
     setFieldValue('b-intent', 'Request design/implementation review from Lodestar');
     setFieldValue('b-ref', refMsg.envelope.id);
     setFieldValue('b-seq', getNextSeq());
-    setFieldValue('b-project', 'InterAI-Protocol');
-    setFieldValue('b-domain', 'Multi-Agent Systems');
+    setFieldValue('b-project', reviewDefaults.project);
+    setFieldValue('b-domain', reviewDefaults.domain);
     setFieldValue('b-payload', 'Please review the referenced message and provide feedback.\n\nAreas of interest:\n- Correctness\n- Design alignment\n- Suggestions for improvement');
 
     updatePreview();
@@ -441,9 +445,10 @@ function prefillAck(refMsg) {
         });
     }
 
+    var ackDefaults = getActiveProjectDefaults(refMsg);
     setFieldValue('b-proto', 'AICP/1.0');
     setFieldValue('b-type', 'ACK');
-    setFieldValue('b-id', generateNextMessageId());
+    setFieldValue('b-id', generateNextMessageId(ackDefaults.project));
     setFieldValue('b-from', 'Don');
     setFieldValue('b-to', recipients.join(', '));
     setFieldValue('b-time', nowISO());
@@ -454,11 +459,58 @@ function prefillAck(refMsg) {
     setFieldValue('b-intent', 'Acknowledge receipt and understanding');
     setFieldValue('b-ref', refMsg.envelope.id);
     setFieldValue('b-seq', getNextSeq());
-    setFieldValue('b-project', 'InterAI-Protocol');
-    setFieldValue('b-domain', 'Multi-Agent Systems');
+    setFieldValue('b-project', ackDefaults.project);
+    setFieldValue('b-domain', ackDefaults.domain);
     setFieldValue('b-payload', 'Acknowledged.');
 
     updatePreview();
+}
+
+/**
+ * Returns default PROJECT and DOMAIN values based on the active project.
+ * If a reference message is provided, uses that message's project.
+ * @param {Object} [refMsg] - Optional reference message
+ * @returns {Object} { project: string, domain: string }
+ */
+function getActiveProjectDefaults(refMsg) {
+    // If a reference message has a project, use that
+    if (refMsg && refMsg._projectId) {
+        var proj = refMsg._projectId;
+        var domain = (refMsg.custom && refMsg.custom['DOMAIN']) || getDomainForProject(proj);
+        return { project: proj, domain: domain };
+    }
+    // If a reference message has PROJECT in custom fields, use that
+    if (refMsg && refMsg.custom && refMsg.custom['PROJECT']) {
+        var proj2 = refMsg.custom['PROJECT'];
+        var domain2 = refMsg.custom['DOMAIN'] || getDomainForProject(proj2);
+        return { project: proj2, domain: domain2 };
+    }
+    // Use active project if it's specific (not "all")
+    if (typeof activeProject !== 'undefined' && activeProject && activeProject !== 'all') {
+        return { project: activeProject, domain: getDomainForProject(activeProject) };
+    }
+    // Fallback: if viewing all and a message is selected, use its project
+    if (typeof selectedIndex !== 'undefined' && selectedIndex >= 0 &&
+        typeof allMessages !== 'undefined' && allMessages[selectedIndex]) {
+        var selMsg = allMessages[selectedIndex];
+        if (selMsg._projectId) {
+            return { project: selMsg._projectId, domain: (selMsg.custom && selMsg.custom['DOMAIN']) || getDomainForProject(selMsg._projectId) };
+        }
+    }
+    return { project: 'InterAI-Protocol', domain: 'Multi-Agent Systems' };
+}
+
+/**
+ * Returns a default DOMAIN value for a known project ID.
+ * @param {string} projectId
+ * @returns {string}
+ */
+function getDomainForProject(projectId) {
+    var domains = {
+        'InterAI-Protocol': 'Multi-Agent Systems',
+        'OperatorHub': 'Flow Cytometry Lab Operations'
+    };
+    return domains[projectId] || '';
 }
 
 // --- Helper functions ---

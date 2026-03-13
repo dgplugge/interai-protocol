@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """
-AICP Relay Server
+AICP Relay Server — Multi-Project Edition
 A lightweight HTTP server that serves the AICP Viewer static files
 and provides relay endpoints for saving and forwarding AICP messages.
 
 Protocol: AICP/1.0
-Slice 7 — Assisted Relay + n8n Workflow Automation Layer
+Slice 8 — Multi-Project Journal Support
 
 Endpoints:
-    POST /api/relay          — Save message to local journal
-    POST /api/relay-to-n8n   — Save locally + forward to n8n webhook
-    GET  /api/integrations   — Return configured integration status
+    GET  /api/projects                       — List all configured projects
+    GET  /api/project/<id>/index             — Get a project's journal-index.json
+    GET  /api/project/<id>/messages/<file>   — Get a message .md file
+    POST /api/relay                          — Save message to correct project journal
+    POST /api/relay-to-n8n                   — Save locally + forward to n8n webhook
+    GET  /api/integrations                   — Return configured integration status
 
 Usage:
     python viewer/server.py
@@ -25,6 +28,7 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from datetime import datetime
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
+from urllib.parse import unquote
 
 PORT = 8080
 
@@ -32,16 +36,12 @@ PORT = 8080
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(SCRIPT_DIR)
 
-# Paths relative to viewer/ directory
-SAMPLES_DIR = os.path.join('samples')
-MESSAGES_DIR = os.path.join(SAMPLES_DIR, 'messages')
-INDEX_FILE = os.path.join(SAMPLES_DIR, 'journal-index.json')
+# Multi-project configuration
+PROJECTS_FILE = os.path.join(SCRIPT_DIR, 'projects.json')
+PROJECTS = {}  # id -> project config dict
 
-# Also update the canonical copy in the project root
+# Parent of viewer dir (repo root) — used only for static file serving
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
-ROOT_SAMPLES_DIR = os.path.join(PROJECT_ROOT, 'samples')
-ROOT_MESSAGES_DIR = os.path.join(ROOT_SAMPLES_DIR, 'messages')
-ROOT_INDEX_FILE = os.path.join(ROOT_SAMPLES_DIR, 'journal-index.json')
 
 # n8n integration config
 N8N_CONFIG_FILE = os.path.join(SCRIPT_DIR, 'n8n-config.json')
@@ -50,6 +50,33 @@ N8N_CONFIG = {
     'N8N_WEBHOOK_URL': '',
     'N8N_TIMEOUT_MS': 5000
 }
+
+
+def load_projects_config():
+    """Load multi-project configuration from projects.json."""
+    global PROJECTS
+    try:
+        if os.path.exists(PROJECTS_FILE):
+            with open(PROJECTS_FILE, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            for proj in config.get('projects', []):
+                pid = proj.get('id')
+                if pid:
+                    # Normalize path separators for the OS
+                    proj['path'] = os.path.normpath(proj['path'])
+                    PROJECTS[pid] = proj
+            print(f'[PROJECTS] Loaded {len(PROJECTS)} project(s): {", ".join(PROJECTS.keys())}')
+        else:
+            print(f'[PROJECTS] No projects.json found — using legacy single-project mode')
+            # Fallback: register the default InterAI-Protocol project
+            PROJECTS['InterAI-Protocol'] = {
+                'id': 'InterAI-Protocol',
+                'name': 'Inter-AI Protocol',
+                'path': os.path.normpath(os.path.join(SCRIPT_DIR, '..', '..', 'Agent-Journals', 'InterAI-Protocol')),
+                'color': '#4a9eff'
+            }
+    except (json.JSONDecodeError, IOError) as e:
+        print(f'[PROJECTS] Config load error: {e}')
 
 
 def load_n8n_config():
@@ -68,6 +95,22 @@ def load_n8n_config():
             print(f'[N8N] No config file found at {N8N_CONFIG_FILE} — integration disabled')
     except (json.JSONDecodeError, IOError) as e:
         print(f'[N8N] Config load error: {e} — integration disabled')
+
+
+def get_project_index_path(project_id):
+    """Get the journal-index.json path for a project."""
+    proj = PROJECTS.get(project_id)
+    if not proj:
+        return None
+    return os.path.join(proj['path'], 'journal-index.json')
+
+
+def get_project_messages_dir(project_id):
+    """Get the messages/ directory path for a project."""
+    proj = PROJECTS.get(project_id)
+    if not proj:
+        return None
+    return os.path.join(proj['path'], 'messages')
 
 
 class RelayHandler(SimpleHTTPRequestHandler):
@@ -90,8 +133,14 @@ class RelayHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         """Route GET requests — API endpoints and static files."""
-        if self.path == '/api/integrations':
+        path = self.path.split('?')[0]  # Strip query params
+
+        if path == '/api/projects':
+            self.handle_projects()
+        elif path == '/api/integrations':
             self.handle_integrations()
+        elif path.startswith('/api/project/'):
+            self.handle_project_resource(path)
         else:
             super().do_GET()
 
@@ -104,16 +153,99 @@ class RelayHandler(SimpleHTTPRequestHandler):
         else:
             self.send_error_json(404, 'Not found')
 
+    def handle_projects(self):
+        """
+        GET /api/projects — returns the list of configured projects
+        with their id, name, color, and message counts.
+        """
+        project_list = []
+        for pid, proj in PROJECTS.items():
+            entry = {
+                'id': proj['id'],
+                'name': proj['name'],
+                'color': proj.get('color', '#888888'),
+                'messageCount': 0
+            }
+            # Count messages from index
+            index_path = get_project_index_path(pid)
+            if index_path and os.path.exists(index_path):
+                try:
+                    with open(index_path, 'r', encoding='utf-8') as f:
+                        index = json.load(f)
+                    entry['messageCount'] = len(index.get('messages', []))
+                except (json.JSONDecodeError, IOError):
+                    pass
+            project_list.append(entry)
+
+        self.send_json(200, {'ok': True, 'projects': project_list})
+
+    def handle_project_resource(self, path):
+        """
+        Route /api/project/<id>/index and /api/project/<id>/messages/<file>.
+        Serves journal data from any configured project path.
+        """
+        # Parse: /api/project/<id>/index or /api/project/<id>/messages/<file>
+        # Strip the prefix
+        rest = path[len('/api/project/'):]
+        parts = rest.split('/', 2)
+
+        if len(parts) < 2:
+            self.send_error_json(400, 'Invalid project resource path')
+            return
+
+        project_id = unquote(parts[0])
+        resource = parts[1]
+
+        if project_id not in PROJECTS:
+            self.send_error_json(404, f'Unknown project: {project_id}')
+            return
+
+        if resource == 'index':
+            # Serve journal-index.json
+            index_path = get_project_index_path(project_id)
+            if index_path and os.path.exists(index_path):
+                with open(index_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                self.send_json(200, data)
+            else:
+                self.send_error_json(404, f'No journal index for project: {project_id}')
+
+        elif resource == 'messages' and len(parts) == 3:
+            # Serve a message .md file
+            filename = unquote(parts[2])
+            # Security: prevent path traversal
+            if '..' in filename or '/' in filename or '\\' in filename:
+                self.send_error_json(400, 'Invalid filename')
+                return
+
+            messages_dir = get_project_messages_dir(project_id)
+            filepath = os.path.join(messages_dir, filename)
+
+            if os.path.exists(filepath):
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                body = content.encode('utf-8')
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/markdown; charset=utf-8')
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            else:
+                self.send_error_json(404, f'Message file not found: {filename}')
+        else:
+            self.send_error_json(400, 'Invalid project resource path')
+
     def handle_relay(self):
         """
         Core relay handler:
         1. Read raw AICP text from request body
-        2. Parse meta fields ($PROTO, $ID, $TYPE, etc.)
-        3. Generate filename from meta
-        4. Check for duplicate message ID
-        5. Save .md file to samples/messages/
-        6. Update journal-index.json
-        7. Return success response
+        2. Parse meta fields ($PROTO, $ID, $TYPE, PROJECT, etc.)
+        3. Determine target project from PROJECT custom field
+        4. Generate filename from meta
+        5. Check for duplicate message ID in target project
+        6. Save .md file to the correct project's messages/ dir
+        7. Update that project's journal-index.json
+        8. Return success response
         """
         try:
             # Read request body
@@ -135,40 +267,44 @@ class RelayHandler(SimpleHTTPRequestHandler):
                 self.send_error_json(400, 'Missing $ID header')
                 return
 
-            # Check for duplicate message ID
-            if self.is_duplicate_id(meta['id']):
+            # Determine target project
+            target_project = meta.get('project', 'InterAI-Protocol')
+            if target_project not in PROJECTS:
+                self.send_error_json(400, f'Unknown project: {target_project}. Configure it in projects.json.')
+                return
+
+            # Check for duplicate message ID in target project
+            if self.is_duplicate_id_in(meta['id'], target_project):
                 self.send_error_json(409, f'Duplicate message ID: {meta["id"]}')
                 return
 
             # Generate filename
             filename = self.generate_filename(meta)
-            filepath = os.path.join(MESSAGES_DIR, filename)
-            root_filepath = os.path.join(ROOT_MESSAGES_DIR, filename)
 
-            # Save .md file (both viewer copy and canonical copy)
-            os.makedirs(MESSAGES_DIR, exist_ok=True)
-            os.makedirs(ROOT_MESSAGES_DIR, exist_ok=True)
+            # Get project-specific paths
+            messages_dir = get_project_messages_dir(target_project)
+            index_path = get_project_index_path(target_project)
+            filepath = os.path.join(messages_dir, filename)
 
+            # Save .md file to project directory
+            os.makedirs(messages_dir, exist_ok=True)
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(raw_body)
 
-            with open(root_filepath, 'w', encoding='utf-8') as f:
-                f.write(raw_body)
-
-            # Update journal-index.json (both copies)
+            # Update journal-index.json
             relative_file = f'messages/{filename}'
-            self.update_index(INDEX_FILE, meta, relative_file)
-            self.update_index(ROOT_INDEX_FILE, meta, relative_file)
+            self.update_index(index_path, meta, relative_file, target_project)
 
             # Success response
             self.send_json(200, {
                 'ok': True,
                 'id': meta['id'],
                 'file': relative_file,
-                'message': f'Relayed {meta["id"]} to journal'
+                'project': target_project,
+                'message': f'Relayed {meta["id"]} to {target_project} journal'
             })
 
-            print(f'[RELAY] Saved {meta["id"]} -> {filename}')
+            print(f'[RELAY] Saved {meta["id"]} -> {target_project}/{filename}')
 
         except Exception as e:
             self.send_error_json(500, f'Relay error: {str(e)}')
@@ -178,12 +314,9 @@ class RelayHandler(SimpleHTTPRequestHandler):
         Relay-to-n8n handler (Slice 7):
         1. Read raw AICP text from request body
         2. Parse meta fields
-        3. Save locally (same as /api/relay)
+        3. Save locally to correct project (same as /api/relay)
         4. Forward to configured n8n webhook
         5. Return combined delivery result
-
-        This is assisted transport — not autonomous messaging.
-        The user explicitly chose to relay to n8n.
         """
         try:
             # Read request body
@@ -205,30 +338,31 @@ class RelayHandler(SimpleHTTPRequestHandler):
                 self.send_error_json(400, 'Missing $ID header')
                 return
 
+            # Determine target project
+            target_project = meta.get('project', 'InterAI-Protocol')
+            if target_project not in PROJECTS:
+                self.send_error_json(400, f'Unknown project: {target_project}')
+                return
+
             # Check for duplicate message ID
-            if self.is_duplicate_id(meta['id']):
+            if self.is_duplicate_id_in(meta['id'], target_project):
                 self.send_error_json(409, f'Duplicate message ID: {meta["id"]}')
                 return
 
-            # Step 1: Save locally (same as /api/relay)
+            # Step 1: Save locally
             filename = self.generate_filename(meta)
-            filepath = os.path.join(MESSAGES_DIR, filename)
-            root_filepath = os.path.join(ROOT_MESSAGES_DIR, filename)
+            messages_dir = get_project_messages_dir(target_project)
+            index_path = get_project_index_path(target_project)
+            filepath = os.path.join(messages_dir, filename)
 
-            os.makedirs(MESSAGES_DIR, exist_ok=True)
-            os.makedirs(ROOT_MESSAGES_DIR, exist_ok=True)
-
+            os.makedirs(messages_dir, exist_ok=True)
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(raw_body)
 
-            with open(root_filepath, 'w', encoding='utf-8') as f:
-                f.write(raw_body)
-
             relative_file = f'messages/{filename}'
-            self.update_index(INDEX_FILE, meta, relative_file)
-            self.update_index(ROOT_INDEX_FILE, meta, relative_file)
+            self.update_index(index_path, meta, relative_file, target_project)
 
-            print(f'[RELAY] Saved {meta["id"]} -> {filename}')
+            print(f'[RELAY] Saved {meta["id"]} -> {target_project}/{filename}')
 
             # Step 2: Forward to n8n webhook
             delivery = 'local_saved'
@@ -242,7 +376,6 @@ class RelayHandler(SimpleHTTPRequestHandler):
                 n8n_error = 'No webhook URL configured'
                 print(f'[N8N] Skipped — no webhook URL')
             else:
-                # Send to n8n
                 try:
                     webhook_url = N8N_CONFIG['N8N_WEBHOOK_URL']
                     timeout_s = N8N_CONFIG.get('N8N_TIMEOUT_MS', 5000) / 1000.0
@@ -250,6 +383,7 @@ class RelayHandler(SimpleHTTPRequestHandler):
                     n8n_payload = json.dumps({
                         'message': raw_body,
                         'messageId': meta['id'],
+                        'project': target_project,
                         'targets': ['n8n'],
                         'meta': {
                             'type': meta.get('type'),
@@ -293,6 +427,7 @@ class RelayHandler(SimpleHTTPRequestHandler):
                 'ok': True,
                 'id': meta['id'],
                 'file': relative_file,
+                'project': target_project,
                 'delivery': delivery,
                 'message': f'Saved locally'
             }
@@ -331,7 +466,9 @@ class RelayHandler(SimpleHTTPRequestHandler):
     def parse_aicp_meta(self, text):
         """
         Extract AICP header fields from raw message text.
-        Returns dict with: proto, type, id, from, to, time, task, ref, seq, role, intent, status, priority
+        Parses both $-prefixed keywords and custom fields (e.g., PROJECT, DOMAIN).
+        Returns dict with: proto, type, id, from, to, time, task, ref, seq,
+                           role, intent, status, priority, project, domain
         """
         meta = {}
         field_map = {
@@ -351,15 +488,31 @@ class RelayHandler(SimpleHTTPRequestHandler):
             '$SUMMARY': 'summary',
         }
 
+        # Custom field mapping (non-$ prefixed)
+        custom_map = {
+            'PROJECT': 'project',
+            'DOMAIN': 'domain',
+        }
+
         for line in text.split('\n'):
             line = line.strip()
             if line.startswith('---PAYLOAD---'):
                 break  # Stop parsing at payload delimiter
+
+            # Match $-prefixed keywords
             match = re.match(r'^(\$\w+):\s*(.+)$', line)
             if match:
                 key, value = match.group(1), match.group(2).strip()
                 if key in field_map:
                     meta[field_map[key]] = value
+                continue
+
+            # Match custom keywords (WORD: value)
+            match = re.match(r'^([A-Z][A-Z0-9_]+):\s*(.+)$', line)
+            if match:
+                key, value = match.group(1), match.group(2).strip()
+                if key in custom_map:
+                    meta[custom_map[key]] = value
 
         return meta
 
@@ -371,9 +524,7 @@ class RelayHandler(SimpleHTTPRequestHandler):
         # Extract date from $TIME or use today
         time_str = meta.get('time', '')
         try:
-            # Parse ISO 8601 datetime
             date_part = time_str[:10]  # "2026-03-09"
-            # Validate it's a real date
             datetime.strptime(date_part, '%Y-%m-%d')
         except (ValueError, IndexError):
             date_part = datetime.now().strftime('%Y-%m-%d')
@@ -384,11 +535,14 @@ class RelayHandler(SimpleHTTPRequestHandler):
 
         return f'{date_part}-{msg_id}-{msg_type}-{sender}.md'
 
-    def is_duplicate_id(self, msg_id):
-        """Check if a message ID already exists in the journal index."""
+    def is_duplicate_id_in(self, msg_id, project_id):
+        """Check if a message ID already exists in a project's journal index."""
+        index_path = get_project_index_path(project_id)
+        if not index_path:
+            return False
         try:
-            if os.path.exists(INDEX_FILE):
-                with open(INDEX_FILE, 'r', encoding='utf-8') as f:
+            if os.path.exists(index_path):
+                with open(index_path, 'r', encoding='utf-8') as f:
                     index = json.load(f)
                 for entry in index.get('messages', []):
                     if entry.get('id') == msg_id:
@@ -397,19 +551,23 @@ class RelayHandler(SimpleHTTPRequestHandler):
             pass
         return False
 
-    def update_index(self, index_path, meta, relative_file):
+    def update_index(self, index_path, meta, relative_file, project_id=None):
         """
         Append a new entry to journal-index.json.
         Creates the file if it doesn't exist.
+        Uses project_id to set the correct project name in new indexes.
         """
         # Read existing index
         if os.path.exists(index_path):
             with open(index_path, 'r', encoding='utf-8') as f:
                 index = json.load(f)
         else:
+            # Determine project info for new index
+            proj = PROJECTS.get(project_id, {}) if project_id else {}
+            proj_name = proj.get('id', project_id or 'Unknown')
             index = {
                 'protocol': 'AICP/1.0',
-                'project': 'InterAI-Protocol',
+                'project': proj_name,
                 'participants': ['Don', 'Pharos', 'Lodestar'],
                 'messages': []
             }
@@ -438,6 +596,7 @@ class RelayHandler(SimpleHTTPRequestHandler):
         index['messages'].append(entry)
 
         # Write updated index
+        os.makedirs(os.path.dirname(index_path), exist_ok=True)
         with open(index_path, 'w', encoding='utf-8') as f:
             json.dump(index, f, indent=2, ensure_ascii=False)
             f.write('\n')
@@ -464,7 +623,9 @@ class RelayHandler(SimpleHTTPRequestHandler):
 def main():
     print(f'AICP Relay Server starting on port {PORT}')
     print(f'Serving from: {os.getcwd()}')
-    print(f'Journal index: {os.path.abspath(INDEX_FILE)}')
+
+    # Load multi-project config
+    load_projects_config()
 
     # Load n8n integration config
     load_n8n_config()
