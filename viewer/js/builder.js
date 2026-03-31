@@ -57,9 +57,17 @@ function resetBuilder() {
     setFieldValue('b-intent', '');
     setFieldValue('b-ref', getLastMessageId() || '');
     setFieldValue('b-seq', getNextSeq());
-    // Set project/domain from active project
+    // Set project/domain from active project via registry dropdown
+    if (projectRegistryLoaded && projectRegistry.length > 0) {
+        populateProjectDropdown('b-project-select', projDefaults.project);
+    }
     setFieldValue('b-project', projDefaults.project);
     setFieldValue('b-domain', projDefaults.domain);
+    var domainEl = document.getElementById('b-domain');
+    if (domainEl) domainEl.readOnly = true;
+    // Hide new project form on reset
+    var npForm = document.getElementById('new-project-form');
+    if (npForm) npForm.style.display = 'none';
     setFieldValue('b-payload', '');
 }
 
@@ -394,6 +402,7 @@ function prefillApproval(refMsg) {
     setFieldValue('b-seq', getNextSeq());
     setFieldValue('b-project', approveDefaults.project);
     setFieldValue('b-domain', approveDefaults.domain);
+    syncProjectDropdown(approveDefaults.project);
     setFieldValue('b-payload', 'APPROVED.\n\nProceeding as proposed.');
 
     updatePreview();
@@ -423,6 +432,7 @@ function prefillRequestReview(refMsg) {
     setFieldValue('b-seq', getNextSeq());
     setFieldValue('b-project', reviewDefaults.project);
     setFieldValue('b-domain', reviewDefaults.domain);
+    syncProjectDropdown(reviewDefaults.project);
     setFieldValue('b-payload', 'Please review the referenced message and provide feedback.\n\nAreas of interest:\n- Correctness\n- Design alignment\n- Suggestions for improvement');
 
     updatePreview();
@@ -461,6 +471,7 @@ function prefillAck(refMsg) {
     setFieldValue('b-seq', getNextSeq());
     setFieldValue('b-project', ackDefaults.project);
     setFieldValue('b-domain', ackDefaults.domain);
+    syncProjectDropdown(ackDefaults.project);
     setFieldValue('b-payload', 'Acknowledged.');
 
     updatePreview();
@@ -501,19 +512,142 @@ function getActiveProjectDefaults(refMsg) {
 }
 
 /**
- * Returns a default DOMAIN value for a known project ID.
+ * Returns a default DOMAIN value for a project ID.
+ * Uses the project registry if loaded, with hardcoded fallback.
  * @param {string} projectId
  * @returns {string}
  */
 function getDomainForProject(projectId) {
-    var domains = {
+    // Use registry if available
+    if (typeof getRegistryDomain === 'function') {
+        var domain = getRegistryDomain(projectId);
+        if (domain) return domain;
+    }
+    // Hardcoded fallback for backward compatibility
+    var fallback = {
         'InterAI-Protocol': 'Multi-Agent Systems',
         'OperatorHub': 'Flow Cytometry Lab Operations'
     };
-    return domains[projectId] || '';
+    return fallback[projectId] || '';
+}
+
+/**
+ * Handles project dropdown selection change in the Builder.
+ * Auto-fills DOMAIN and shows/hides the new project form.
+ */
+function onBuilderProjectChange() {
+    var select = document.getElementById('b-project-select');
+    if (!select) return;
+
+    var val = select.value;
+    var newForm = document.getElementById('new-project-form');
+    var domainEl = document.getElementById('b-domain');
+
+    if (val === '__new__') {
+        // Show new project creation form
+        if (newForm) newForm.style.display = 'block';
+        setFieldValue('b-project', '');
+        if (domainEl) {
+            domainEl.value = '';
+            domainEl.readOnly = false;
+        }
+        return;
+    }
+
+    // Hide new project form
+    if (newForm) newForm.style.display = 'none';
+
+    // Set hidden project field and auto-fill domain
+    setFieldValue('b-project', val);
+    var domain = getDomainForProject(val);
+    setFieldValue('b-domain', domain);
+    if (domainEl) domainEl.readOnly = true;
+
+    updatePreview();
+}
+
+/**
+ * Creates a new project from the inline form and adds it to the registry.
+ */
+async function createNewProject() {
+    var name = getFieldValue('np-name');
+    var domain = getFieldValue('np-domain');
+    var description = getFieldValue('np-description');
+    var agentsStr = getFieldValue('np-agents');
+
+    if (!name || !domain) {
+        showToast('Project name and domain are required', 'error');
+        return;
+    }
+
+    var agents = agentsStr ? agentsStr.split(',').map(function(a) { return a.trim(); }).filter(Boolean) : [];
+
+    var project = {
+        projectName: name,
+        domain: domain,
+        description: description,
+        defaultAgents: agents
+    };
+
+    var result = await saveRegistryProject(project);
+
+    if (result.ok) {
+        showToast('Created project: ' + name, 'success');
+
+        // Repopulate dropdown and select the new project
+        populateProjectDropdown('b-project-select', project.projectId);
+        onBuilderProjectChange();
+
+        // Clear and hide the form
+        cancelNewProject();
+    } else {
+        showToast('Failed: ' + result.error, 'error');
+    }
+}
+
+/**
+ * Cancels new project creation and resets the dropdown.
+ */
+function cancelNewProject() {
+    var newForm = document.getElementById('new-project-form');
+    if (newForm) newForm.style.display = 'none';
+
+    // Clear form fields
+    setFieldValue('np-name', '');
+    setFieldValue('np-domain', '');
+    setFieldValue('np-description', '');
+    setFieldValue('np-agents', '');
+
+    // Reset dropdown to first project
+    var select = document.getElementById('b-project-select');
+    if (select && select.options.length > 0 && select.value === '__new__') {
+        select.value = projectRegistry.length > 0 ? projectRegistry[0].projectId : '';
+        onBuilderProjectChange();
+    }
+
+    var domainEl = document.getElementById('b-domain');
+    if (domainEl) domainEl.readOnly = true;
 }
 
 // --- Helper functions ---
+
+/**
+ * Syncs the project dropdown to match a given project ID.
+ * If the ID isn't in the registry, keeps the hidden field value as-is (backward compat).
+ * @param {string} projectId
+ */
+function syncProjectDropdown(projectId) {
+    var select = document.getElementById('b-project-select');
+    if (!select) return;
+    // Check if the value exists in the dropdown
+    for (var i = 0; i < select.options.length; i++) {
+        if (select.options[i].value === projectId) {
+            select.value = projectId;
+            return;
+        }
+    }
+    // Not in dropdown — leave it; the hidden b-project field has the correct value
+}
 
 function getFieldValue(id) {
     const el = document.getElementById(id);
@@ -608,12 +742,41 @@ function initBuilder() {
                     </div>
                     <div class="builder-row">
                         <div class="builder-field">
-                            <label for="b-project">PROJECT</label>
-                            <input type="text" id="b-project" value="InterAI-Protocol" oninput="updatePreview()">
+                            <label for="b-project-select">PROJECT</label>
+                            <select id="b-project-select" onchange="onBuilderProjectChange()"></select>
+                            <input type="hidden" id="b-project">
                         </div>
                         <div class="builder-field">
                             <label for="b-domain">DOMAIN</label>
-                            <input type="text" id="b-domain" value="Multi-Agent Systems" oninput="updatePreview()">
+                            <input type="text" id="b-domain" value="" readonly oninput="updatePreview()">
+                        </div>
+                    </div>
+                    <div id="new-project-form" class="builder-new-project" style="display:none;">
+                        <div class="builder-row">
+                            <div class="builder-field">
+                                <label for="np-name">Project Name</label>
+                                <input type="text" id="np-name" placeholder="e.g., Study Guide">
+                            </div>
+                            <div class="builder-field">
+                                <label for="np-domain">Domain</label>
+                                <input type="text" id="np-domain" placeholder="e.g., AI-Assisted Learning">
+                            </div>
+                        </div>
+                        <div class="builder-row">
+                            <div class="builder-field full">
+                                <label for="np-description">Description</label>
+                                <input type="text" id="np-description" placeholder="Short project description">
+                            </div>
+                        </div>
+                        <div class="builder-row">
+                            <div class="builder-field">
+                                <label for="np-agents">Default Agents</label>
+                                <input type="text" id="np-agents" placeholder="Pharos, Lodestar">
+                            </div>
+                            <div class="builder-field" style="display:flex;align-items:flex-end;gap:6px;">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="createNewProject()">Create</button>
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="cancelNewProject()">Cancel</button>
+                            </div>
                         </div>
                     </div>
                     <div class="builder-row">
@@ -634,6 +797,7 @@ function initBuilder() {
                     <button id="copy-btn" class="btn btn-primary" onclick="copyPacket()">Copy Packet</button>
                     <button class="btn btn-secondary" onclick="addToViewer()">Add to Viewer</button>
                     <button class="btn btn-ghost" onclick="resetBuilder(); updatePreview();">Reset</button>
+                    <button class="btn btn-cancel" onclick="toggleBuilder()">Cancel</button>
                     <div id="builder-validation" class="builder-valid">Valid</div>
                 </div>
             </div>

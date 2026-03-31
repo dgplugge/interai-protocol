@@ -1,0 +1,66 @@
+{
+  "projects": [
+    {
+      "projectId": "InterAI-Protocol",
+      "projectName": "Inter-AI Protocol",
+      "domain": "Multi-Agent Systems",
+      "description": "Core AICP protocol development and multi-agent orchestration",
+      "defaultAgents": [
+        "Pharos",
+        "Lodestar",
+        "Forge"
+      ],
+      "status": "active",
+      "createdOn": "2025-03-01T00:00:00-05:00",
+      "tags": [
+        "protocol",
+        "infrastructure"
+      ]
+    },
+    {
+      "projectId": "OperatorHub",
+      "projectName": "Operator Hub",
+      "domain": "Flow Cytometry Lab Operations",
+      "description": "Lab operations dashboard and SOP management",
+      "defaultAgents": [
+        "Pharos",
+        "Lodestar"
+      ],
+      "status": "active",
+      "createdOn": "2025-03-15T00:00:00-05:00",
+      "tags": [
+        "lab-ops",
+        "dashboard"
+      ]
+    },
+    {
+      "projectId": "PortfolioAnalysis",
+      "projectName": "Portfolio Analysis",
+      "domain": "Financial Analysis",
+      "description": "Investment portfolio analysis tools",
+      "defaultAgents": [
+        "Pharos"
+      ],
+      "status": "incubating",
+      "createdOn": "2025-03-20T00:00:00-05:00",
+      "tags": [
+        "finance"
+      ]
+    },
+    {
+      "projectId": "StudyGuide",
+      "projectName": "Study Guide",
+      "domain": "AI-Assisted Learning",
+      "description": "AI-generated study materials with multi-agent validation",
+      "defaultAgents": [
+        "Pharos"
+      ],
+      "status": "active",
+      "createdOn": "2026-03-30T00:00:00-04:00",
+      "tags": [
+        "education",
+        "ARE"
+      ]
+    }
+  ]
+}

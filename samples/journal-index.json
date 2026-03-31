@@ -4,7 +4,9 @@
   "participants": [
     "Don",
     "Pharos",
-    "Lodestar"
+    "Lodestar",
+    "Forge",
+    "SpinDrift"
   ],
   "messages": [
     {
@@ -590,6 +592,111 @@
       "file": "messages/2026-03-10-MSG-0044-update-don.md",
       "ref": "MSG-0043",
       "seq": 46
+    },
+    {
+      "id": "MSG-0045",
+      "type": "REVIEW",
+      "from": "Pharos",
+      "to": [
+        "Lodestar"
+      ],
+      "time": "2026-03-30T18:45:00-04:00",
+      "task": "Review deliverables — ARE Study Module + Project Registry design",
+      "file": "messages/2026-03-30-MSG-0045-review-pharos.md",
+      "ref": "OH-MSG-STUDY-0001",
+      "seq": 47
+    },
+    {
+      "id": "MSG-0046",
+      "type": "REQUEST",
+      "from": "Don",
+      "to": [
+        "Pharos"
+      ],
+      "time": "2026-03-30T17:45:00-04:00",
+      "task": "Design AI-assisted study system and generate ARE Project Management case studies",
+      "file": "messages/2026-03-30-MSG-0046-request-don.md",
+      "ref": "NONE",
+      "seq": 48
+    },
+    {
+      "id": "MSG-0047",
+      "type": "REQUEST",
+      "from": "Don",
+      "to": [
+        "Pharos"
+      ],
+      "time": "2026-03-30T18:10:00-04:00",
+      "task": "Implement Project Registry and Builder Create Project workflow",
+      "file": "messages/2026-03-30-MSG-0047-request-don.md",
+      "ref": "NONE",
+      "seq": 49
+    },
+    {
+      "id": "MSG-0048",
+      "type": "REQUEST",
+      "from": "Don",
+      "to": [
+        "Pharos"
+      ],
+      "time": "2026-03-30T18:30:00-04:00",
+      "task": "Define and begin migration of AICP core services from JavaScript to .NET",
+      "file": "messages/2026-03-30-MSG-0048-request-don.md",
+      "ref": "NONE",
+      "seq": 50
+    },
+    {
+      "id": "MSG-0049",
+      "type": "REVIEW",
+      "from": "Lodestar",
+      "to": [
+        "Pharos"
+      ],
+      "time": "2026-03-30T18:45:00-04:00",
+      "task": "Review and align on system direction across Study Guide, Project Registry, and .NET Core migration",
+      "file": "messages/2026-03-30-MSG-0049-review-lodestar.md",
+      "ref": "MSG-0045",
+      "seq": 51
+    },
+    {
+      "id": "MSG-0050",
+      "type": "ACK",
+      "from": "Don",
+      "to": [
+        "Pharos"
+      ],
+      "time": "2026-03-30T19:00:00-04:00",
+      "task": "Authorization to proceed with Project Registry implementation (Phase 1)",
+      "file": "messages/2026-03-30-MSG-0050-ack-don.md",
+      "ref": "MSG-0047",
+      "seq": 52
+    },
+    {
+      "id": "MSG-0051",
+      "type": "RESPONSE",
+      "from": "Pharos",
+      "to": [
+        "Don",
+        "Lodestar"
+      ],
+      "time": "2026-03-30T19:30:00-04:00",
+      "task": "Project Registry implementation complete — Phase 1 summary",
+      "file": "messages/2026-03-30-MSG-0051-response-pharos.md",
+      "ref": "MSG-0050",
+      "seq": 53
+    },
+    {
+      "id": "MSG-0052",
+      "type": "REVIEW",
+      "from": "Lodestar",
+      "to": [
+        "Pharos"
+      ],
+      "time": "2026-03-30T19:15:00-04:00",
+      "task": "Review Phase 1 implementation of Project Registry",
+      "file": "messages/2026-03-30-MSG-0052-review-lodestar.md",
+      "ref": "MSG-0051",
+      "seq": 54
     }
   ],
   "protocol_amendments": [

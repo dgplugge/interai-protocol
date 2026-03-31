@@ -567,6 +567,16 @@ body {
     border-color: var(--border-color);
 }
 
+.btn-cancel {
+    background: transparent;
+    color: #e57373;
+    border: 1px solid #e57373;
+}
+.btn-cancel:hover {
+    background: #e57373;
+    color: #fff;
+}
+
 /* Builder Validation */
 .builder-valid {
     font-size: 12px;
@@ -578,6 +588,18 @@ body {
     font-size: 12px;
     color: var(--accent-red);
     margin-left: auto;
+}
+
+/* New Project inline form */
+.builder-new-project {
+    border-top: 1px solid var(--border-color);
+    padding-top: 8px;
+    margin-top: 4px;
+}
+
+.btn-sm {
+    padding: 4px 10px;
+    font-size: 11px;
 }
 
 /* Builder Preview */

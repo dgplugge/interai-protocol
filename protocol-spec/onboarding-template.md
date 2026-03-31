@@ -36,6 +36,12 @@ Current team members:
 - Lodestar (ChatGPT / OpenAI) — Lead Designer, Reviewer
   Designs system architecture, reviews implementations.
 
+- Forge (ChatGPT / OpenAI) — Design/Build Specialist
+  Designs and builds features, supports workflow integration.
+
+- SpinDrift (Cursor) — Protocol-Aware Navigator / Integrator / Guardrail Engineer
+  Maintains protocol consistency, validates packets, bridges IDE and workflow coordination.
+
 ────────────────────────────────────
 PROTOCOL OVERVIEW
 ────────────────────────────────────

@@ -39,10 +39,26 @@
       "capabilities": ["design", "implementation", "analysis"],
       "status": "active",
       "onboarding": {
-        "state": "awaiting_ack",
+        "state": "complete",
         "assigned_role": "Design and Build Specialist",
         "invited_at": "2026-03-12T10:00:00-04:00",
         "ack_message_id": "MSG-0045"
+      }
+    },
+    {
+      "id": "spindrift",
+      "name": "SpinDrift",
+      "type": "ai",
+      "platform": "Cursor",
+      "roles": ["Protocol-Aware Navigator", "Integrator", "Guardrail Engineer"],
+      "permissions": ["edit_code", "design_review", "proposal"],
+      "capabilities": ["protocol_validation", "routing", "onboarding", "workflow_bridge", "schema_enforcement"],
+      "status": "active",
+      "onboarding": {
+        "state": "complete",
+        "assigned_role": "Protocol-Aware Navigator / Integrator / Guardrail Engineer",
+        "invited_at": "2026-03-17T15:00:00-04:00",
+        "ack_message_id": "OH-MSG-0017"
       }
     }
   ],

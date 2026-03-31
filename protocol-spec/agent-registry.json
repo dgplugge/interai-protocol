@@ -28,6 +28,32 @@
       "permissions": ["design_review", "proposal"],
       "capabilities": ["architecture", "analysis"],
       "status": "active"
+    },
+    {
+      "id": "forge",
+      "name": "Forge",
+      "type": "ai",
+      "platform": "ChatGPT (OpenAI)",
+      "roles": ["Design/Build Specialist"],
+      "permissions": ["design_review", "proposal"],
+      "capabilities": ["design", "build", "workflow"],
+      "status": "active"
+    },
+    {
+      "id": "spindrift",
+      "name": "SpinDrift",
+      "type": "ai",
+      "platform": "Cursor",
+      "roles": ["Protocol-Aware Navigator", "Integrator", "Guardrail Engineer"],
+      "permissions": ["edit_code", "design_review", "proposal"],
+      "capabilities": ["protocol_validation", "routing", "onboarding", "workflow_bridge", "schema_enforcement"],
+      "status": "active",
+      "onboarding": {
+        "state": "complete",
+        "assigned_role": "Protocol-Aware Navigator / Integrator / Guardrail Engineer",
+        "invited_at": "2026-03-17T15:00:00-04:00",
+        "ack_message_id": "OH-MSG-0017"
+      }
     }
   ],
   "schema_notes": {

@@ -31,6 +31,11 @@ async function initViewer() {
     const statusEl = document.getElementById('status');
     if (statusEl) statusEl.textContent = 'Loading projects...';
 
+    // Load project registry (metadata: domains, agents, status)
+    if (typeof loadProjectRegistry === 'function') {
+        await loadProjectRegistry();
+    }
+
     // Load project list
     projectList = await loadAllProjects();
 
@@ -127,10 +132,11 @@ function onProjectChange() {
     activeProject = sel.value;
     renderMessageList();
 
-    // Select first message in filtered list
+    // Select newest message in filtered list
     const filtered = getFilteredMessages();
     if (filtered.length > 0) {
-        const globalIdx = allMessages.indexOf(filtered[0]);
+        const newest = filtered[filtered.length - 1];
+        const globalIdx = allMessages.indexOf(newest);
         selectMessage(globalIdx);
     } else {
         selectedIndex = -1;
@@ -177,7 +183,7 @@ function renderMessageList() {
 
     listEl.innerHTML = '';
 
-    const filtered = getFilteredMessages();
+    const filtered = getFilteredMessages().slice().reverse();
 
     filtered.forEach((msg) => {
         const globalIndex = allMessages.indexOf(msg);

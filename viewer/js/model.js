@@ -11,7 +11,7 @@
 const REQUIRED_KEYWORDS = ['$PROTO', '$TYPE', '$ID', '$FROM', '$TO', '$TIME'];
 
 // Valid message types
-const MESSAGE_TYPES = ['REQUEST', 'RESPONSE', 'ACK', 'ERROR', 'HANDOFF', 'REVIEW'];
+const MESSAGE_TYPES = ['REQUEST', 'RESPONSE', 'ACK', 'UPDATE', 'REVIEW', 'ERROR', 'HANDOFF', 'BRAINSTORM'];
 
 // Valid status values
 const STATUS_VALUES = ['PENDING', 'IN_PROGRESS', 'COMPLETE', 'FAILED'];
@@ -26,10 +26,12 @@ const AUDIT_KEYWORDS = ['$SUMMARY', '$CHANGES', '$CHECKSUM'];
 
 // Sender color assignments
 const SENDER_COLORS = {
-    'Don':      { bg: '#e8f5e9', border: '#4caf50', text: '#2e7d32', badge: '#4caf50' },
-    'Pharos':   { bg: '#e3f2fd', border: '#2196f3', text: '#1565c0', badge: '#2196f3' },
-    'Lodestar': { bg: '#fff8e1', border: '#ffc107', text: '#f57f17', badge: '#ffa000' },
-    'default':  { bg: '#f5f5f5', border: '#9e9e9e', text: '#616161', badge: '#9e9e9e' }
+    'Don':       { bg: '#e8f5e9', border: '#4caf50', text: '#2e7d32', badge: '#4caf50' },
+    'Pharos':    { bg: '#e3f2fd', border: '#2196f3', text: '#1565c0', badge: '#2196f3' },
+    'Lodestar':  { bg: '#fff8e1', border: '#ffc107', text: '#f57f17', badge: '#ffa000' },
+    'Forge':     { bg: '#fce4ec', border: '#e91e63', text: '#880e4f', badge: '#e91e63' },
+    'SpinDrift': { bg: '#e0f7fa', border: '#00bcd4', text: '#006064', badge: '#00bcd4' },
+    'default':   { bg: '#f5f5f5', border: '#9e9e9e', text: '#616161', badge: '#9e9e9e' }
 };
 
 /**

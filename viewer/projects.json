@@ -11,6 +11,18 @@
       "name": "Operator Hub",
       "path": "H:/Code/Agent-Journals/OperatorHub",
       "color": "#4aff9e"
+    },
+    {
+      "id": "PortfolioAnalysis",
+      "name": "Portfolio Analysis",
+      "path": "H:/Code/Agent-Journals/PortfolioAnalysis",
+      "color": "#ff9e4a"
+    },
+    {
+      "id": "StudyGuide",
+      "name": "Study Guide",
+      "path": "H:/Code/Agent-Journals/StudyGuide",
+      "color": "#e64aff"
     }
   ]
 }

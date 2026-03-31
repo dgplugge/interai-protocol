@@ -14,6 +14,8 @@ Endpoints:
     POST /api/relay                          — Save message to correct project journal
     POST /api/relay-to-n8n                   — Save locally + forward to n8n webhook
     GET  /api/integrations                   — Return configured integration status
+    GET  /api/project-registry               — Get the project registry (metadata)
+    POST /api/project-registry               — Create a new project in the registry
 
 Usage:
     python viewer/server.py
@@ -50,6 +52,9 @@ N8N_CONFIG = {
     'N8N_WEBHOOK_URL': '',
     'N8N_TIMEOUT_MS': 5000
 }
+
+# Project registry
+PROJECT_REGISTRY_FILE = os.path.join(SCRIPT_DIR, 'project-registry.json')
 
 
 def load_projects_config():
@@ -121,8 +126,8 @@ class RelayHandler(SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        # Prevent caching of JSON files so viewer always gets fresh data
-        if self.path.endswith('.json'):
+        # Prevent caching so viewer always gets fresh data
+        if self.path.endswith('.json') or self.path.endswith('.js') or self.path.endswith('.css'):
             self.send_header('Cache-Control', 'no-store')
         super().end_headers()
 
@@ -137,6 +142,8 @@ class RelayHandler(SimpleHTTPRequestHandler):
 
         if path == '/api/projects':
             self.handle_projects()
+        elif path == '/api/project-registry':
+            self.handle_get_project_registry()
         elif path == '/api/integrations':
             self.handle_integrations()
         elif path.startswith('/api/project/'):
@@ -150,6 +157,8 @@ class RelayHandler(SimpleHTTPRequestHandler):
             self.handle_relay()
         elif self.path == '/api/relay-to-n8n':
             self.handle_relay_to_n8n()
+        elif self.path == '/api/project-registry':
+            self.handle_post_project_registry()
         else:
             self.send_error_json(404, 'Not found')
 
@@ -462,6 +471,101 @@ class RelayHandler(SimpleHTTPRequestHandler):
             }
         }
         self.send_json(200, {'ok': True, 'integrations': integrations})
+
+    def handle_get_project_registry(self):
+        """
+        GET /api/project-registry — serve the project registry JSON.
+        """
+        try:
+            if os.path.exists(PROJECT_REGISTRY_FILE):
+                with open(PROJECT_REGISTRY_FILE, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                self.send_json(200, data)
+            else:
+                self.send_json(200, {'projects': []})
+        except (json.JSONDecodeError, IOError) as e:
+            self.send_error_json(500, f'Failed to load project registry: {e}')
+
+    def handle_post_project_registry(self):
+        """
+        POST /api/project-registry — add a new project to the registry.
+        Expects JSON body with: projectName, domain, and optional fields.
+        Validates for duplicates, normalizes ID, and persists to file.
+        """
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length == 0:
+                self.send_error_json(400, 'Empty request body')
+                return
+
+            raw_body = self.rfile.read(content_length).decode('utf-8')
+            new_project = json.loads(raw_body)
+
+            # Validate required fields
+            if not new_project.get('projectName', '').strip():
+                self.send_error_json(400, 'projectName is required')
+                return
+            if not new_project.get('domain', '').strip():
+                self.send_error_json(400, 'domain is required')
+                return
+
+            # Generate ID from name if not provided
+            if not new_project.get('projectId'):
+                name = new_project['projectName']
+                new_project['projectId'] = ''.join(
+                    word.capitalize()
+                    for word in re.sub(r'[^a-zA-Z0-9]+', ' ', name).strip().split()
+                )
+
+            # Load existing registry
+            if os.path.exists(PROJECT_REGISTRY_FILE):
+                with open(PROJECT_REGISTRY_FILE, 'r', encoding='utf-8') as f:
+                    registry = json.load(f)
+            else:
+                registry = {'projects': []}
+
+            projects = registry.get('projects', [])
+
+            # Check for duplicate ID
+            for p in projects:
+                if p.get('projectId') == new_project['projectId']:
+                    self.send_error_json(409, f'Project ID already exists: {new_project["projectId"]}')
+                    return
+
+            # Check for duplicate name (case-insensitive)
+            new_name_lower = new_project['projectName'].lower().strip()
+            for p in projects:
+                if p.get('projectName', '').lower().strip() == new_name_lower:
+                    self.send_error_json(409, f'Project name already exists: {new_project["projectName"]}')
+                    return
+
+            # Set defaults
+            new_project.setdefault('status', 'incubating')
+            new_project.setdefault('createdOn', datetime.now().astimezone().isoformat())
+            new_project.setdefault('defaultAgents', [])
+            new_project.setdefault('tags', [])
+            new_project.setdefault('description', '')
+
+            # Append and save
+            projects.append(new_project)
+            registry['projects'] = projects
+
+            with open(PROJECT_REGISTRY_FILE, 'w', encoding='utf-8') as f:
+                json.dump(registry, f, indent=2, ensure_ascii=False)
+                f.write('\n')
+
+            print(f'[REGISTRY] Created project: {new_project["projectId"]} ({new_project["projectName"]})')
+
+            self.send_json(201, {
+                'ok': True,
+                'projectId': new_project['projectId'],
+                'message': f'Created project: {new_project["projectName"]}'
+            })
+
+        except json.JSONDecodeError:
+            self.send_error_json(400, 'Invalid JSON body')
+        except Exception as e:
+            self.send_error_json(500, f'Registry error: {str(e)}')
 
     def parse_aicp_meta(self, text):
         """
