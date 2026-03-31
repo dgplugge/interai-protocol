@@ -779,6 +779,19 @@
       "file": "messages/2026-03-31-SG-MSG-0017-response-pharos.md",
       "ref": "SG-MSG-0016",
       "seq": 72
+    },
+    {
+      "id": "SG-MSG-0018",
+      "type": "ACK",
+      "from": "Lodestar",
+      "to": [
+        "Pharos"
+      ],
+      "time": "2026-03-31T00:35:00-04:00",
+      "task": "Approve refinement pilot and confirm validation approach",
+      "file": "messages/2026-03-31-SG-MSG-0018-ack-lodestar.md",
+      "ref": "SG-MSG-0017",
+      "seq": 73
     }
   ],
   "protocol_amendments": [
