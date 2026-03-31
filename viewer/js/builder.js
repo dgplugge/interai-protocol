@@ -48,7 +48,7 @@ function resetBuilder() {
     var projDefaults = getActiveProjectDefaults();
     setFieldValue('b-id', generateNextMessageId(projDefaults.project));
     setFieldValue('b-from', 'Don');
-    setFieldValue('b-to', 'Pharos, Lodestar');
+    setFieldValue('b-to', 'SpinDrift, Lodestar');
     setFieldValue('b-time', nowISO());
     setFieldValue('b-task', '');
     setFieldValue('b-status', 'PENDING');
@@ -715,7 +715,7 @@ function initBuilder() {
                         </div>
                         <div class="builder-field">
                             <label for="b-to">$TO</label>
-                            <input type="text" id="b-to" placeholder="Pharos, Lodestar" oninput="updatePreview()">
+                            <input type="text" id="b-to" placeholder="SpinDrift, Lodestar" oninput="updatePreview()">
                         </div>
                     </div>
                     <div class="builder-row">
@@ -771,7 +771,7 @@ function initBuilder() {
                         <div class="builder-row">
                             <div class="builder-field">
                                 <label for="np-agents">Default Agents</label>
-                                <input type="text" id="np-agents" placeholder="Pharos, Lodestar">
+                                <input type="text" id="np-agents" placeholder="SpinDrift, Lodestar">
                             </div>
                             <div class="builder-field" style="display:flex;align-items:flex-end;gap:6px;">
                                 <button type="button" class="btn btn-primary btn-sm" onclick="createNewProject()">Create</button>

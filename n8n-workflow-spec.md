@@ -474,10 +474,11 @@ CUSTOM-KEY: value
 
 | Name     | Role              |
 |----------|-------------------|
-| Don      | Orchestrator      |
-| Pharos   | Architect         |
-| Lodestar | Systems Architect |
-| Forge    | Builder           |
+| Don       | Orchestrator                             |
+| Pharos    | Architect                                |
+| Lodestar  | Systems Architect                        |
+| Forge     | Builder                                  |
+| SpinDrift | Protocol Integrator / Guardrail Engineer |
 
 ---
 
