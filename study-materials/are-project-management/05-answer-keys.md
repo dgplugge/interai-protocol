@@ -440,206 +440,153 @@ manageable with proper sequencing.
 
 ## Case Study 3: Municipal Library Branch
 
-### Question 1 — Answer: **C**
-**Tag:** CO / E
+### Question 1 — Answer: A
+Tag: CO / E
 
-When all bids exceed the budget in a public procurement process, the typical approach is
-to negotiate value engineering with the lowest responsible bidder. Redesigning the entire
-project is a disproportionate response when the overage can be addressed through targeted
-scope adjustments, as was done here.
+When all bids exceed the budget in a public procurement process, the standard approach is to negotiate value engineering with the lowest responsible bidder. This preserves the competitive bid process while addressing the budget gap through targeted scope adjustments rather than more costly or disruptive alternatives.
 
-**Why not A?** Rejecting all bids and redesigning is costly and time-consuming; VE
-negotiation is standard practice.
+Why not B? Rejecting all bids and reissuing is a valid but disproportionate response when the overage can be resolved through negotiation. It adds months of delay and additional design cost.
 
-**Why not B?** Public agencies have budget authority limits — they cannot simply accept
-a bid that exceeds the approved budget without additional appropriation or scope reduction.
+Why not C? Public agencies cannot award contracts that exceed the approved budget without additional appropriation. The procurement code requires the lowest responsible bidder, but the award must still fall within budget authority.
 
-**Why not D?** Negotiating with a non-low bidder undermines the competitive bid process
-and may violate procurement law.
+Why not D? Switching from competitive sealed bid to best-value selection mid-process would likely violate the procurement code under which the project was advertised.
 
-**Cross-reference:** Document A, Bid Tabulation and VE Log
+Cross-reference: Document A, Bid Tabulation and VE Log; scenario narrative (procurement method)
 
 ---
 
-### Question 2 — Answer: **C**
-**Tag:** RK / M
+### Question 2 — Answer: B
+Tag: RK / M
 
-The risk is not just the $11,000 or $42,000 to fix the products — it's the policy
-compliance issue. The City mandates LEED Silver for all municipal buildings over 5,000 SF.
-Failing to achieve Silver could create political, legal, and reputational issues beyond
-the direct remediation costs.
+The most significant risk is policy noncompliance. The City's capital improvement policy mandates LEED Silver for municipal buildings over 5,000 SF. Failure to achieve certification creates a compliance issue with political, legal, and reputational dimensions that extend well beyond the direct cost of product substitution. The dollar amounts ($11,000 or $42,000) represent remediation costs, not the full risk exposure.
 
-**Why not A/B?** These are remediation costs, not the full risk exposure.
+Why not A? The $42,000 cost is a remediation option, not the risk itself. The risk is the policy violation.
 
-**Why not D?** LEED Silver is mandated by City policy, making it effectively mandatory
-for this project.
+Why not C? LEED Certified does not satisfy the City's policy requirement. Silver is the mandatory minimum.
 
-**Cross-reference:** Document C (LEED scorecard + EcoMetrics memo); scenario narrative
-(LEED Silver mandate)
+Why not D? Additional consulting cost is a secondary concern compared to the fundamental compliance risk.
+
+Cross-reference: Document C (LEED scorecard and EcoMetrics memo); scenario narrative (LEED Silver mandate)
 
 ---
 
-### Question 3 — Answer: **B**
-**Tag:** PE / M
+### Question 3 — Answer: A
+Tag: PE / M
 
-The contractor's concerns are legitimate — long-lead submittals (casework, shelving) do
-have real procurement consequences. The professional response is to acknowledge the issue,
-prioritize critical items, provide a realistic schedule, and also document any submittals
-that were submitted late or incompletely by the contractor (to maintain a balanced record).
+The contractor's concerns are legitimate and documented formally. The professional response addresses the substance of the letter: acknowledge the backlog, prioritize the most schedule-critical items, commit to a clearing timeline, and establish a factual record of when each submittal was actually received. This last point is important because the contractor's letter positions the backlog as entirely Architect-caused, but the record may show that some submittals were received after the dates that would have allowed timely review.
 
-**Why not A?** Dismissing a legitimate concern damages the professional relationship and
-may create liability if the delay causes real schedule impact.
+Why not B? Forwarding to the Owner is premature. The Architect should first assess whether the contractor's characterization is accurate and respond directly. Involving the Owner before understanding the facts may escalate unnecessarily.
 
-**Why not C?** Requesting a schedule extension is premature — the backlog may be
-clearable within the contractor's timeframes if prioritized properly.
+Why not C? Requesting a schedule extension concedes that the Architect has caused delay before verifying whether that is actually true. Many of the submittals may still be within the 10-business-day window.
 
-**Why not D?** Billing the Owner for additional staff to address a submittal backlog
-would require justification and may not be an Additional Service.
+Why not D? Simply rejecting the letter's characterization without providing a constructive response damages the professional relationship and does not address the legitimate procurement concerns.
 
-**Cross-reference:** Document B, Contractor letter; contract 10-business-day requirement
+Cross-reference: Document B, Contractor letter and submittal log; contract 10-business-day review period
 
 ---
 
-### Question 4 — Answer: **B**
-**Tag:** WP / M
+### Question 4 — Answer: B
+Tag: WP / M
 
-The casework has a 12-week lead time from approval. If approved November 17, delivery
-would be around February 9. If approved November 28 (11 calendar days later, roughly
-8-9 business days), delivery shifts approximately 2 weeks to around February 23,
-delaying installation by the same duration.
+The 12-week lead time begins from the date of approval. If approved November 17, delivery would be approximately February 9. If approved November 28, delivery shifts by approximately the same duration — roughly 2 weeks — to around February 23. The delay in approval translates approximately one-to-one into delivery delay.
 
-**Why not A?** Expediting is possible but not guaranteed and typically costs extra.
+Why not A? While manufacturer schedules can vary, the question asks for the most likely impact based on the information provided. The lead time is stated as 12 weeks from approval.
 
-**Why not C?** The lead time doesn't restart — it begins from the approval date.
+Why not C? The 10-business-day review period is a contractual obligation, not a shield against schedule consequences. Whether the Architect is liable is a separate question from whether the delay occurs.
 
-**Why not D?** The calculation is straightforward: delay in approval = approximately
-equal delay in delivery.
+Why not D? Lead times do not restart from zero with each submittal cycle. The 12-week fabrication period begins from the approval date.
 
-**Cross-reference:** Document B submittal log, contractor letter
+Cross-reference: Document B submittal log and contractor letter
 
 ---
 
-### Question 5 — Answer: **B**
-**Tag:** CO / H
+### Question 5 — Answer: B
+Tag: CO / H
 
-This is a publicly bid contract. The City's procurement code requires City Council
-approval for any change order exceeding $25,000. The funding source does not change the
-procurement authority requirement — the contract is between the City and the Contractor,
-and any modification must follow the same approval process regardless of which municipal
-account pays for it.
+The contract is between the City and the Contractor, established through competitive sealed bidding under the city procurement code. Any modification to that contract — regardless of funding source — must follow the same approval process. The $25,000 City Council threshold applies to the change order amount, not to which municipal account provides the funds. The Library Board's operating budget is still a municipal funding source administered through the same contractual framework.
 
-**Why not A?** The Library Director cannot independently modify a City contract that
-went through competitive sealed bidding.
+Why not A? A Construction Change Directive can direct work to proceed without contractor agreement on cost, but it does not bypass the City Council approval threshold for change orders on publicly bid contracts.
 
-**Why not C?** The item was formally eliminated through VE. Adding it back is a change
-order, not a field modification.
+Why not C? The Library Director does not have independent authority to modify a contract that was awarded through the City's competitive bid process, even if the Library Board provides funding.
 
-**Why not D?** Rebidding is not required for owner-directed additions to an existing
-contract (within limits set by procurement law).
+Why not D? Owner-directed additions to an existing contract do not require rebidding. The scope is added through a change order to the existing contract.
 
-**Cross-reference:** Scenario narrative ($25,000 City Council threshold); Document A
-VE-05
+Cross-reference: Scenario narrative ($25,000 City Council threshold and procurement method); Document A VE-05
 
 ---
 
-### Question 6 — Answer: **B**
-**Tag:** RK / H
+### Question 6 — Answer: B
+Tag: RK / H
 
-Option 2 achieves LEED compliance at $11,000 vs. $42,000 for Option 1, while maintaining
-the VE cost structure. It requires contractor cooperation (new submittals) and resubmittal
-review time, but the schedule allows for this if acted upon promptly. The roofing membrane
-has a 4-week lead time with January 12 installation — there is still time to resolve this.
+Option 2 achieves LEED compliance at approximately $11,000 additional cost, compared to $42,000 for reverting to original specifications. It requires contractor cooperation for new submittals and review time, but the schedule allows this if acted upon promptly — the roofing membrane has a 4-week lead time with January 12 installation, providing adequate time to resolve the resubmittal.
 
-**Why not A?** Option 1 works but costs nearly 4x more for the same outcome.
+Why not A? The scorecard shows 53 projected points. Losing 4 MR points drops the project to 49 — below the Silver threshold of 50. Energy and Atmosphere has 23 untargeted points available, but earning additional points in that category at this stage would likely require design changes or equipment upgrades that exceed the cost and schedule impact of Option 2.
 
-**Why not C?** The scorecard shows the project at 53 projected points. Losing 4 drops
-it to 49 — below Silver (50). Finding 4 replacement points at this stage is extremely
-difficult; most categories are already near their targets.
+Why not C? Option 1 achieves the same LEED outcome at nearly 4 times the cost. The additional expense is not justified when a lower-cost alternative exists.
 
-**Why not D?** The 45 achieved + 8 pending = 53, minus 4 = 49. The margin is too thin
-to ignore.
+Why not D? Deferring the decision risks missing the procurement window for the roofing membrane. The 4-week lead time and January 12 installation date create a hard deadline that does not allow for a wait-and-see approach.
 
-**Cross-reference:** Document C LEED scorecard and EcoMetrics memo
+Cross-reference: Document C LEED scorecard and EcoMetrics memo
 
 ---
 
-### Question 7 — Answer: **B**
-**Tag:** PE / E
+### Question 7 — Answer: B
+Tag: PE / E
 
-The submittals were returned as "Revise & Resubmit" because the products match the VE
-specification (which removed the EPD requirement) but the Architect recognized that
-installing non-EPD products would drop the LEED EPD-certified product count below the
-20-product threshold needed for Materials & Resources credits.
+The submitted products conform to the VE specification, which explicitly removed the EPD requirement for both roofing membrane and interior paint. However, installing these products would reduce the count of EPD-certified products below the 20-product minimum required for the LEED Materials and Resources credit. The submittals were returned not because the products fail to meet the construction specifications, but because they create a LEED compliance conflict that must be resolved before procurement proceeds.
 
-**Why not A?** Both VE products still meet fire rating and performance requirements.
+Why not A? The products comply with the VE-modified performance specifications. The VE process itself changed what is required, and the submitted products match those changed requirements.
 
-**Why not C?** The products are what the VE specification calls for — they're "correct"
-per VE but problematic for LEED.
+Why not C? No approved manufacturers list issue is identified in the documents. The concern is specifically about EPD certification status.
 
-**Why not D?** The submittals themselves were complete; the issue is the products' LEED
-compliance characteristics.
+Why not D? The submittals contained adequate documentation. The issue is the products' environmental certification characteristics, not missing paperwork.
 
-**Cross-reference:** Document A VE-01, VE-02; Document C EcoMetrics memo
+Cross-reference: Document A VE-01 and VE-02; Document C EcoMetrics memo; Document B submittal log
 
 ---
 
-### Question 8 — Answer: **C**
-**Tag:** WP / H
+### Question 8 — Answer: C
+Tag: WP / H
 
-Installation starts January 12, 2026. With a 4-week lead time, the order must be placed
-by approximately December 15, 2025. Allowing a few days for processing after approval,
-December 15 is the latest practical approval date.
+Installation is scheduled for January 12, 2026. The roofing membrane has a 4-week lead time from order placement. Working backward, the order must be placed by approximately December 15, 2025. Assuming approval and order placement occur within the same business day or shortly after, December 15 is the latest practical approval date.
 
-**Why not A?** November 14 would provide more margin but is not the *latest* date.
+Why not A? December 1 provides 6 weeks of lead time, which exceeds the stated 4-week requirement. While additional margin is prudent, the question asks for the latest date, not the recommended date.
 
-**Why not B?** December 1 provides 6 weeks, which is more margin than needed.
+Why not B? November 14 accounts for a resubmittal review period, but the question asks specifically about the latest approval date relative to the lead time and installation date, not about the full resubmittal timeline.
 
-**Why not D?** January 1 leaves only 11 calendar days — less than the 4-week lead time.
+Why not D? December 8 provides 5 weeks, which is more margin than required. While reasonable, it is not the latest date that avoids delay.
 
-**Cross-reference:** Document C EcoMetrics memo (4-week lead time, Jan 12 installation)
+Cross-reference: Document C EcoMetrics memo (4-week lead time, January 12 installation date)
 
 ---
 
-### Question 9 — Answer: **D**
-**Tag:** CO / M
+### Question 9 — Answer: B
+Tag: CO / M
 
-The $85,000 for the book return lane comes from the Library Board's operating budget, not
-from the bond-funded construction budget. The contingency is part of the bond budget.
-Therefore, only the $11,000 LEED fix comes from the construction contingency, leaving
-$164,000. The book return lane, while it requires City Council approval (Question 5),
-is funded separately and does not reduce the construction contingency.
+The construction contingency is part of the bond-funded construction budget. The book return lane is funded from the Library Board's operating budget, which is a separate municipal funding source. While the change order still requires City Council approval (per Question 5), the $85,000 does not draw from the bond contingency. Only the $11,000 LEED fix is charged against the construction contingency, reducing it from $175,000 to $164,000.
 
-**Why not A?** This incorrectly subtracts the $85,000 from the bond contingency.
+Why not A? This incorrectly treats the Library Board operating funds as if they reduce the bond-funded contingency. The two funding sources are distinct.
 
-**Why not B?** This ignores both the LEED fix and the book return lane.
+Why not C? The $11,000 for the LEED-compliant substitute products is a construction cost that would be charged against the bond contingency. The contingency does not remain unchanged.
 
-**Why not C?** This correctly deducts the $11,000 but the reasoning for excluding the
-$85,000 is the key point — which makes D the most complete answer.
+Why not D? The book return lane being administered through the general contract does not change its funding source. Contract administration and funding are separate concerns. The $85,000 is a Library Board expenditure regardless of which contract mechanism delivers it.
 
-**Cross-reference:** Scenario narrative (funding sources); Document A VE log; Document C
+Cross-reference: Scenario narrative (funding sources and contingency); Document A VE log; Document C EcoMetrics memo
 
 ---
 
-### Question 10 — Answer: **B**
-**Tag:** RM / H
+### Question 10 — Answer: B
+Tag: RM / H
 
-With a small team (3 people) and multiple competing demands, the PM must prioritize by
-impact and delegate by expertise. Long-lead submittals (casework, shelving) get reviewed
-first because delays are irreversible. Elena and consultants can handle discipline-specific
-submittals (MEP submittals to ClearPoint, structural to Atlas). James personally manages
-the higher-level issues (LEED resolution, book return scope) that require Owner/contractor
-coordination.
+With three team members and multiple concurrent demands, the PM must match tasks to expertise and prioritize by schedule criticality. Long-lead submittals (casework at 12 weeks, shelving at 10 weeks) must be reviewed first because approval delays translate directly into delivery delays that cannot be recovered. Discipline-specific submittals can be delegated — Elena handles architectural submittals, MEP submittals go to ClearPoint for technical review, structural to Atlas. James retains personal management of the LEED resolution (which requires coordination with EcoMetrics, the contractor, and product manufacturers) and the book return scope addition (which requires Owner coordination and City Council approval).
 
-**Why not A?** One person reviewing all 18 submittals creates a bottleneck and delays
-the most critical items.
+Why not A? Focusing exclusively on submittals ignores the LEED compliance deadline. The roofing membrane decision has its own procurement timeline that runs in parallel with the submittal backlog.
 
-**Why not C?** Requesting additional staff is disproportionate — the backlog is
-manageable with proper delegation and prioritization.
+Why not C? The workload, while significant, is manageable through delegation and prioritization. Requesting additional staffing is disproportionate and may not be approved quickly enough to address the immediate deadlines.
 
-**Why not D?** Asking the contractor to delay resubmission worsens the problem.
+Why not D? Asking the contractor to withdraw and resequence submittals delays procurement further and does not address the contractor's legitimate concern about Architect-caused schedule impact.
 
-**Cross-reference:** Document B (submittal log, contractor letter); Document C
-(LEED timeline)
+Cross-reference: Document B (submittal log and contractor letter); Document C (LEED timeline and roofing lead time)
 
 ---
 
