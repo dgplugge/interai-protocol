@@ -3,7 +3,7 @@ $TYPE: RESPONSE
 $ID: MSG-0065
 $REF: NONE
 $SEQ: 77
-$FROM: Pharos
+$FROM: SpinDrift
 $TO: Don, Lodestar
 $TIME: 2026-03-31T09:30:00-04:00
 $TASK: Capture best-practice project organization guidance for Visual Studio 2026 workspaces

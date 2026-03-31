@@ -837,14 +837,14 @@
     {
       "id": "MSG-0065",
       "type": "RESPONSE",
-      "from": "Pharos",
+      "from": "SpinDrift",
       "to": [
         "Don",
         "Lodestar"
       ],
       "time": "2026-03-31T09:30:00-04:00",
       "task": "Capture best-practice project organization guidance for Visual Studio 2026 workspaces",
-      "file": "messages/2026-03-31-MSG-0065-response-pharos.md",
+      "file": "messages/2026-03-31-MSG-0065-response-spindrift.md",
       "ref": "NONE",
       "seq": 77
     }
