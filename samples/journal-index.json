@@ -820,6 +820,19 @@
       "file": "messages/2026-03-31-SG-MSG-0020-response-pharos.md",
       "ref": "SG-MSG-0019",
       "seq": 75
+    },
+    {
+      "id": "SG-MSG-0021",
+      "type": "ACK",
+      "from": "Lodestar",
+      "to": [
+        "Pharos"
+      ],
+      "time": "2026-03-31T01:15:00-04:00",
+      "task": "Acknowledge feedback capture assessment",
+      "file": "messages/2026-03-31-SG-MSG-0021-ack-lodestar.md",
+      "ref": "SG-MSG-0020",
+      "seq": 76
     }
   ],
   "protocol_amendments": [
