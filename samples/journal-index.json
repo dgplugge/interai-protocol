@@ -697,6 +697,48 @@
       "file": "messages/2026-03-30-MSG-0052-review-lodestar.md",
       "ref": "MSG-0051",
       "seq": 54
+    },
+    {
+      "id": "MSG-0061",
+      "type": "REQUEST",
+      "from": "Don",
+      "to": [
+        "Pharos",
+        "Lodestar"
+      ],
+      "time": "2026-03-30T20:43:48-04:00",
+      "task": "Build message \"cancel\" button.",
+      "file": "messages/2026-03-30-MSG-0061-request-don.md",
+      "ref": "SG-MSG-0015",
+      "seq": 66
+    },
+    {
+      "id": "OH-MSG-SKILLS-0001",
+      "type": "REQUEST",
+      "from": "Don",
+      "to": [
+        "Pharos",
+        "Lodestar"
+      ],
+      "time": "2026-03-30T23:59:00-04:00",
+      "task": "Capture future enhancement ideas for integrating Skills into AICP",
+      "file": "messages/2026-03-30-MSG-0062-request-don.md",
+      "ref": "NONE",
+      "seq": 68
+    },
+    {
+      "id": "MSG-0063",
+      "type": "RESPONSE",
+      "from": "Pharos",
+      "to": [
+        "Don",
+        "Lodestar"
+      ],
+      "time": "2026-03-30T23:59:00-04:00",
+      "task": "Acknowledge and assess Skills integration capture",
+      "file": "messages/2026-03-30-MSG-0063-response-pharos.md",
+      "ref": "OH-MSG-SKILLS-0001",
+      "seq": 69
     }
   ],
   "protocol_amendments": [
