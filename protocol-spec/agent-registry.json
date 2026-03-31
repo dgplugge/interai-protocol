@@ -33,7 +33,7 @@
       "id": "forge",
       "name": "Forge",
       "type": "ai",
-      "platform": "ChatGPT (OpenAI)",
+      "platform": "Codex (OpenAI)",
       "roles": ["Design/Build Specialist"],
       "permissions": ["design_review", "proposal"],
       "capabilities": ["design", "build", "workflow"],
