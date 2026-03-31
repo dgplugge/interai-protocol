@@ -752,6 +752,33 @@
       "file": "messages/2026-03-31-MSG-0064-ack-lodestar.md",
       "ref": "MSG-0063",
       "seq": 70
+    },
+    {
+      "id": "SG-MSG-0016",
+      "type": "REVIEW",
+      "from": "Lodestar",
+      "to": [
+        "Pharos"
+      ],
+      "time": "2026-03-31T00:20:00-04:00",
+      "task": "Analyze user feedback and define Study Guide refinement actions",
+      "file": "messages/2026-03-31-SG-MSG-0016-review-lodestar.md",
+      "ref": "SG-MSG-0015",
+      "seq": 71
+    },
+    {
+      "id": "SG-MSG-0017",
+      "type": "RESPONSE",
+      "from": "Pharos",
+      "to": [
+        "Lodestar",
+        "Don"
+      ],
+      "time": "2026-03-31T00:25:00-04:00",
+      "task": "Acknowledge refinement plan and propose execution approach",
+      "file": "messages/2026-03-31-SG-MSG-0017-response-pharos.md",
+      "ref": "SG-MSG-0016",
+      "seq": 72
     }
   ],
   "protocol_amendments": [
