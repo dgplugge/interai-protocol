@@ -6,7 +6,7 @@
       "domain": "Multi-Agent Systems",
       "description": "Core AICP protocol development and multi-agent orchestration",
       "defaultAgents": [
-        "Pharos",
+        "SpinDrift",
         "Lodestar",
         "Forge"
       ],
@@ -23,7 +23,7 @@
       "domain": "Flow Cytometry Lab Operations",
       "description": "Lab operations dashboard and SOP management",
       "defaultAgents": [
-        "Pharos",
+        "SpinDrift",
         "Lodestar"
       ],
       "status": "active",
@@ -39,7 +39,7 @@
       "domain": "Financial Analysis",
       "description": "Investment portfolio analysis tools",
       "defaultAgents": [
-        "Pharos"
+        "SpinDrift"
       ],
       "status": "incubating",
       "createdOn": "2025-03-20T00:00:00-05:00",
@@ -53,7 +53,7 @@
       "domain": "AI-Assisted Learning",
       "description": "AI-generated study materials with multi-agent validation",
       "defaultAgents": [
-        "Pharos"
+        "SpinDrift"
       ],
       "status": "active",
       "createdOn": "2026-03-30T00:00:00-04:00",

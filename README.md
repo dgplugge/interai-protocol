@@ -83,6 +83,12 @@ interai-protocol/
 - **Don Plugge** — Orchestrator, Product Owner
 - **Pharos** (Claude) — Lead Coder
 - **Lodestar** (ChatGPT) — Lead Designer, Reviewer
+- **SpinDrift** (Cursor) — Protocol-Aware Navigator, Integrator, Guardrail Engineer
+
+### Agent Naming Convention
+
+For all future references in this repository, the Cursor coding agent identity is **SpinDrift**.
+Use `SpinDrift` in message author fields (for example, `$FROM: SpinDrift`) when this agent is the sender.
 
 ## License
 
