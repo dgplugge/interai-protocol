@@ -1,5 +1,5 @@
 {
-  "N8N_ENABLED": false,
-  "N8N_WEBHOOK_URL": "",
+  "N8N_ENABLED": true,
+  "N8N_WEBHOOK_URL": "http://localhost:5678/webhook/aicp-ingress",
   "N8N_TIMEOUT_MS": 5000
 }

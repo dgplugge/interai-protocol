@@ -52,7 +52,7 @@ Webhook
 // AICP Ingress Parser — n8n Code Node
 // Parses raw AICP/1.0 text protocol packets into structured JSON
 
-const rawBody = $input.first().json.body;
+const rawBody = $input.first().json.body?.message || $input.first().json.message || $input.first().json.body;
 const raw = typeof rawBody === 'string' ? rawBody : JSON.stringify(rawBody);
 
 // Normalize CRLF
