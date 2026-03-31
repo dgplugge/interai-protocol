@@ -792,6 +792,34 @@
       "file": "messages/2026-03-31-SG-MSG-0018-ack-lodestar.md",
       "ref": "SG-MSG-0017",
       "seq": 73
+    },
+    {
+      "id": "SG-MSG-0019",
+      "type": "REQUEST",
+      "from": "Don",
+      "to": [
+        "Pharos",
+        "Lodestar"
+      ],
+      "time": "2026-03-31T01:00:00-04:00",
+      "task": "Capture idea for user feedback capture in Study Guide UI",
+      "file": "messages/2026-03-31-SG-MSG-0019-request-don.md",
+      "ref": "SG-MSG-0018",
+      "seq": 74
+    },
+    {
+      "id": "SG-MSG-0020",
+      "type": "RESPONSE",
+      "from": "Pharos",
+      "to": [
+        "Don",
+        "Lodestar"
+      ],
+      "time": "2026-03-31T01:05:00-04:00",
+      "task": "Assess feedback capture options for Study Guide UI",
+      "file": "messages/2026-03-31-SG-MSG-0020-response-pharos.md",
+      "ref": "SG-MSG-0019",
+      "seq": 75
     }
   ],
   "protocol_amendments": [
