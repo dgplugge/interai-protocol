@@ -6,7 +6,7 @@
  * Version: Slice 3+4 — Agent Registry + Onboarding
  *
  * Features:
- *   - Loads agent-registry.json from samples/
+ *   - Loads agent-registry.json from viewer root
  *   - Renders agent cards with name, type, roles, status, capabilities
  *   - Toggleable side panel via "Agents" button in header
  *   - Status colors: active=green, standby=yellow, pending=blue, offline=gray, retired=white
@@ -22,7 +22,7 @@ let registryData = null;
  */
 async function loadRegistry() {
     try {
-        const response = await fetch('samples/agent-registry.json');
+        const response = await fetch('agent-registry.json');
         if (!response.ok) {
             console.warn('Could not load agent registry:', response.status);
             return null;

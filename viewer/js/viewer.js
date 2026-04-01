@@ -45,7 +45,7 @@ async function initViewer() {
     if (statusEl) statusEl.textContent = 'Loading messages...';
 
     // Auto-load: multi-project API, then index, then embedded
-    allMessages = await autoLoad('samples/journal-index.json', activeProject);
+    allMessages = await autoLoad(null, activeProject);
 
     if (allMessages.length === 0) {
         if (statusEl) statusEl.textContent = 'No messages found. Check console for details.';
@@ -501,7 +501,7 @@ function getPriorityColor(priority) {
  * re-sorts, re-renders, and selects the newest message.
  */
 async function refreshMessages() {
-    const freshMessages = await autoLoad(`samples/journal-index.json?t=${Date.now()}`, activeProject);
+    const freshMessages = await autoLoad(null, activeProject);
 
     if (freshMessages.length > 0) {
         allMessages = freshMessages;

@@ -63,8 +63,8 @@ REQUIRED READING
 Before responding, review these materials:
 
 1. protocol-spec/   — AICP specification and field definitions
-2. samples/messages/ — Full message history (the living journal)
-3. samples/journal-index.json — Message index with sequence numbers
+2. H:/Code/Agent-Journals/ — Full message history organized by project
+3. Each project has its own journal-index.json and messages/ directory
 4. protocol-spec/agent-registry.json — Current team roster
 
 ────────────────────────────────────

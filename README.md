@@ -21,7 +21,7 @@ Every AICP message has four segments:
 
 ### Quick Links (Forge onboarding)
 - Cheat sheet: `notes/forge-aicp-cheatsheet.md`
-- Sample messages (good patterns: MSG-0006…MSG-0010): `samples/messages/`
+- Sample messages (good patterns: MSG-0006…MSG-0010): `H:/Code/Agent-Journals/InterAI-Protocol/messages/`
 
 ### Example Message
 
@@ -72,9 +72,8 @@ interai-protocol/
 │   │   ├── viewer.js    # Timeline UI renderer
 │   │   └── registry.js  # Agent registry panel (Slice 3)
 │   ├── css/viewer.css   # Dark theme styles
-│   └── samples/         # Viewer's copy of journal data
+│   └── agent-registry.json  # Agent metadata
 ├── protocol-spec/       # AICP specification + agent registry
-├── samples/             # Canonical messages and journal index
 └── README.md
 ```
 
