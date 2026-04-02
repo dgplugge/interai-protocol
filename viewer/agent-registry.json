@@ -10,7 +10,7 @@
       "status": "active",
       "delivery": {
         "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
-        "webhook": "http://localhost:8080/agents/don/notify",
+        "webhook": "http://127.0.0.1:8080/agents/don/notify",
         "mode": "file_and_webhook",
         "notes": "Human orchestrator — file saved by server.py, n8n sends notification webhook"
       }
@@ -26,7 +26,7 @@
       "status": "active",
       "delivery": {
         "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
-        "webhook": "http://localhost:8080/agents/pharos/notify",
+        "webhook": "http://127.0.0.1:8080/agents/pharos/notify",
         "mode": "file_and_webhook",
         "notes": "Local agent — file saved by server.py, n8n sends notification webhook"
       }
@@ -42,7 +42,7 @@
       "status": "active",
       "delivery": {
         "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
-        "webhook": "http://localhost:8080/agents/lodestar/deliver",
+        "webhook": "http://127.0.0.1:8080/agents/lodestar/deliver",
         "mode": "file_and_webhook",
         "notes": "Remote agent — file saved by server.py, n8n sends full message via webhook"
       }
@@ -64,7 +64,7 @@
       },
       "delivery": {
         "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
-        "webhook": "http://localhost:8080/agents/forge/deliver",
+        "webhook": "http://127.0.0.1:8080/agents/forge/deliver",
         "mode": "file_and_webhook",
         "notes": "Remote agent — file saved by server.py, n8n sends full message via webhook"
       }
@@ -86,7 +86,7 @@
       },
       "delivery": {
         "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
-        "webhook": "http://localhost:8080/agents/spindrift/notify",
+        "webhook": "http://127.0.0.1:8080/agents/spindrift/notify",
         "mode": "file_and_webhook",
         "notes": "Local agent — file saved by server.py, n8n sends notification webhook"
       }

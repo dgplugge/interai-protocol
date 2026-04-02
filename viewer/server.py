@@ -756,7 +756,7 @@ class RelayHandler(SimpleHTTPRequestHandler):
         """Append a notification to an agent's inbox."""
         inbox = self._read_inbox(agent_id)
         notification = dict(payload)
-        notification['receivedAt'] = datetime.utcnow().isoformat() + 'Z'
+        notification['receivedAt'] = datetime.now().astimezone().isoformat()
         notification['read'] = False
         notification['eventType'] = event_type
         inbox['notifications'].append(notification)
