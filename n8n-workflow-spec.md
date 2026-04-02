@@ -481,12 +481,86 @@ CUSTOM-KEY: value
 
 ---
 
+## Phase 2: Hybrid Delivery (File Write + Webhook)
+
+### Delivery Architecture
+
+Each branch stub (Nodes 4a–4e) is replaced with a **two-step delivery chain**:
+
+1. **File Write** — Always write the parsed message as a `.md` file to the agent's journal folder (audit trail).
+2. **Webhook Push** — If the agent's registry entry has a webhook URL, POST the parsed message to that endpoint (for remote agents that cannot read the local filesystem).
+
+The agent registry (`viewer/agent-registry.json`) drives delivery behavior via the `delivery` block on each agent:
+
+```json
+{
+  "delivery": {
+    "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
+    "webhook": "<URL or null>",
+    "mode": "file_only | file_and_webhook | webhook_only"
+  }
+}
+```
+
+### Delivery Modes
+
+| Mode               | File Write | Webhook POST | Use Case                           |
+|--------------------|------------|--------------|-------------------------------------|
+| `file_only`        | Yes        | No           | Local agents (Pharos/Claude, SpinDrift/Cursor) |
+| `file_and_webhook` | Yes        | Yes          | Remote agents (Lodestar/ChatGPT, Forge/ChatGPT) |
+| `webhook_only`     | No         | Yes          | Future: ephemeral or cloud-only agents |
+
+### Updated Branch Shape (per agent)
+
+```
+Switch output N -> Set Target Metadata -> Write Journal File -> IF(webhook) -> HTTP POST webhook
+                                                              -> ELSE       -> (skip)
+                                                              -> Merge
+```
+
+### Webhook POST Payload
+
+When a webhook is configured, n8n sends:
+
+```json
+{
+  "messageId": "MSG-0069",
+  "proto": "AICP/1.0",
+  "type": "REVIEW",
+  "from": "Pharos",
+  "to": ["Lodestar"],
+  "time": "2026-04-02T09:15:00-04:00",
+  "task": "...",
+  "status": "APPROVED",
+  "project": "InterAI-Protocol",
+  "payloadText": "<full payload content>",
+  "deliveryMode": "file_and_webhook",
+  "journalFile": "2026-04-02-MSG-0069-review-pharos.md"
+}
+```
+
+### Multi-Target Delivery (route_multi)
+
+For messages with multiple targets in `$TO`:
+1. Parse target list from `routing.targets` array
+2. Fan out: for each target, look up delivery config in registry
+3. Execute file write + webhook (if configured) per target
+4. Collect delivery receipts and merge
+
+### Journal File Naming Convention
+
+Files are written as: `{date}-{msgId}-{type}-{from}.md`
+
+Example: `2026-04-02-MSG-0069-review-pharos.md`
+
+---
+
 ## Future Upgrade Path
 
 This workflow is designed for a 3-phase evolution. The Switch contract (`route_pharos`, `route_lodestar`, etc.) remains **stable across all phases** — only the resolution logic changes upstream.
 
-- **Phase 1 (current):** Static name-based routing via hardcoded if/else in the Code node. Branch stubs return mock responses.
-- **Phase 2:** Insert a Registry Lookup node between Code and Switch. Reads `agent-registry.json` to resolve agent metadata. Populates `routing.registry`. Switch values unchanged.
+- **Phase 1 (complete):** Static name-based routing via hardcoded if/else in the Code node. Branch stubs return mock responses.
+- **Phase 2 (current):** Hybrid delivery — file write to journal + webhook push for remote agents. Agent registry drives delivery config. Registry Lookup node reads `agent-registry.json` to resolve agent metadata. Populates `routing.registry`. Switch values unchanged.
 - **Phase 3:** Code node routing evolves from name-based to capability-matched. Switch contract remains the same.
 
 When a stub is replaced with a live integration, change `routing.handlerStatus` from `stub` to `live` in that branch's Set node.

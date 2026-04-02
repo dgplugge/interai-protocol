@@ -7,7 +7,13 @@
       "roles": ["Orchestrator"],
       "permissions": ["approve", "assign_roles"],
       "capabilities": ["coordination", "decision"],
-      "status": "active"
+      "status": "active",
+      "delivery": {
+        "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
+        "webhook": null,
+        "mode": "file_only",
+        "notes": "Human orchestrator — reads journal directly"
+      }
     },
     {
       "id": "pharos",
@@ -17,7 +23,13 @@
       "roles": ["Lead Coder"],
       "permissions": ["edit_code"],
       "capabilities": ["implementation", "testing"],
-      "status": "active"
+      "status": "active",
+      "delivery": {
+        "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
+        "webhook": null,
+        "mode": "file_only",
+        "notes": "Local agent — reads filesystem directly via Claude Code"
+      }
     },
     {
       "id": "lodestar",
@@ -27,7 +39,13 @@
       "roles": ["Lead Designer", "Reviewer"],
       "permissions": ["design_review", "proposal"],
       "capabilities": ["architecture", "analysis"],
-      "status": "active"
+      "status": "active",
+      "delivery": {
+        "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
+        "webhook": "PENDING_CONFIGURATION",
+        "mode": "file_and_webhook",
+        "notes": "Remote agent — cannot read local files, requires webhook push"
+      }
     },
     {
       "id": "forge",
@@ -43,6 +61,12 @@
         "assigned_role": "Design and Build Specialist",
         "invited_at": "2026-03-12T10:00:00-04:00",
         "ack_message_id": "MSG-0045"
+      },
+      "delivery": {
+        "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
+        "webhook": "PENDING_CONFIGURATION",
+        "mode": "file_and_webhook",
+        "notes": "Remote agent — cannot read local files, requires webhook push"
       }
     },
     {
@@ -59,6 +83,12 @@
         "assigned_role": "Protocol-Aware Navigator / Integrator / Guardrail Engineer",
         "invited_at": "2026-03-17T15:00:00-04:00",
         "ack_message_id": "OH-MSG-0017"
+      },
+      "delivery": {
+        "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
+        "webhook": null,
+        "mode": "file_only",
+        "notes": "Local agent — reads filesystem via Cursor"
       }
     }
   ],
@@ -69,6 +99,17 @@
       "assigned_role": "<string>",
       "invited_at": "<ISO timestamp>",
       "ack_message_id": "<MSG-ID or null>"
+    },
+    "delivery_block": {
+      "journalPath": "<relative path from repo root to agent's message folder>",
+      "webhook": "<URL or null — set to PENDING_CONFIGURATION until agent provides endpoint>",
+      "mode": "file_only | file_and_webhook | webhook_only",
+      "notes": "<human-readable delivery rationale>"
+    },
+    "delivery_modes": {
+      "file_only": "Write .md to journalPath. Agent reads filesystem directly (local agents).",
+      "file_and_webhook": "Write .md to journalPath AND POST to webhook URL (remote agents).",
+      "webhook_only": "POST to webhook only, no local file write (future: ephemeral agents)."
     }
   }
 }
