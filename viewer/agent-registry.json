@@ -10,9 +10,9 @@
       "status": "active",
       "delivery": {
         "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
-        "webhook": null,
-        "mode": "file_only",
-        "notes": "Human orchestrator — reads journal directly"
+        "webhook": "http://localhost:3001/don/notify",
+        "mode": "file_and_webhook",
+        "notes": "Human orchestrator — file saved by server.py, n8n sends notification webhook"
       }
     },
     {
@@ -26,9 +26,9 @@
       "status": "active",
       "delivery": {
         "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
-        "webhook": null,
-        "mode": "file_only",
-        "notes": "Local agent — reads filesystem directly via Claude Code"
+        "webhook": "http://localhost:3001/pharos/notify",
+        "mode": "file_and_webhook",
+        "notes": "Local agent — file saved by server.py, n8n sends notification webhook"
       }
     },
     {
@@ -42,9 +42,9 @@
       "status": "active",
       "delivery": {
         "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
-        "webhook": "PENDING_CONFIGURATION",
+        "webhook": "http://localhost:3001/lodestar/deliver",
         "mode": "file_and_webhook",
-        "notes": "Remote agent — cannot read local files, requires webhook push"
+        "notes": "Remote agent — file saved by server.py, n8n sends full message via webhook"
       }
     },
     {
@@ -64,9 +64,9 @@
       },
       "delivery": {
         "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
-        "webhook": "PENDING_CONFIGURATION",
+        "webhook": "http://localhost:3001/forge/deliver",
         "mode": "file_and_webhook",
-        "notes": "Remote agent — cannot read local files, requires webhook push"
+        "notes": "Remote agent — file saved by server.py, n8n sends full message via webhook"
       }
     },
     {
@@ -86,9 +86,9 @@
       },
       "delivery": {
         "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
-        "webhook": null,
-        "mode": "file_only",
-        "notes": "Local agent — reads filesystem via Cursor"
+        "webhook": "http://localhost:3001/spindrift/notify",
+        "mode": "file_and_webhook",
+        "notes": "Local agent — file saved by server.py, n8n sends notification webhook"
       }
     }
   ],

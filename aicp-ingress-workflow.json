@@ -1,0 +1,343 @@
+{
+  "name": "AICP Ingress Parser",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aicp-ingress",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "aicp-ingress-001"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// AICP Ingress Parser — n8n Code Node\n// Parses raw AICP/1.0 text protocol packets into structured JSON\n\nconst rawBody = $input.first().json.body?.message || $input.first().json.message || $input.first().json.body;\nconst raw = typeof rawBody === 'string' ? rawBody : JSON.stringify(rawBody);\n\n// Normalize CRLF\nconst text = raw.replace(/\\r\\n/g, '\\n').replace(/\\r/g, '\\n');\nconst lines = text.split('\\n');\n\n// --- Phase 1: Split headers from payload ---\nconst headers = {};\nconst payloadLines = [];\nlet inPayload = false;\n\nfor (const line of lines) {\n  const trimmed = line.trim();\n\n  if (trimmed === '---PAYLOAD---') {\n    inPayload = true;\n    continue;\n  }\n  if (trimmed === '---END---') {\n    inPayload = false;\n    continue;\n  }\n\n  if (inPayload) {\n    payloadLines.push(line);\n    continue;\n  }\n\n  // Parse key: value pairs (supports $KEY and plain KEY with spaces/hyphens)\n  const kvMatch = trimmed.match(/^(\\$?[A-Za-z][A-Za-z0-9_ .\\-]*?)\\s*:\\s*(.*)$/);\n  if (kvMatch) {\n    const key = kvMatch[1].trim();\n    const value = kvMatch[2].trim();\n    headers[key] = value;\n  }\n}\n\nconst payloadText = payloadLines.join('\\n').replace(/^\\n+|\\n+$/g, '');\n\n// --- Phase 2: Normalize canonical fields ---\nconst toRaw = headers['$TO'] || '';\nconst targets = toRaw.split(',').map(t => t.trim()).filter(Boolean);\n\nconst normalized = {\n  proto:    headers['$PROTO'] || '',\n  type:     headers['$TYPE'] || '',\n  id:       headers['$ID'] || '',\n  ref:      headers['$REF'] || null,\n  seq:      headers['$SEQ'] ? parseInt(headers['$SEQ'], 10) : null,\n  from:     headers['$FROM'] || '',\n  to:       targets,\n  time:     headers['$TIME'] || '',\n  task:     headers['$TASK'] || '',\n  status:   headers['$STATUS'] || '',\n  priority: headers['$PRIORITY'] || null,\n  role:     headers['$ROLE'] || null,\n  intent:   headers['$INTENT'] || null\n};\n\n// --- Phase 3: Extract custom (non-$) headers ---\nconst custom = {};\nfor (const [key, value] of Object.entries(headers)) {\n  if (!key.startsWith('$')) {\n    custom[key] = value;\n  }\n}\n\n// --- Phase 4: Determine route from $TO ---\nlet route = 'route_unknown';\nconst lower = targets.map(t => t.toLowerCase());\n\nif (targets.length > 1) {\n  route = 'route_multi';\n} else if (lower.includes('pharos')) {\n  route = 'route_pharos';\n} else if (lower.includes('lodestar')) {\n  route = 'route_lodestar';\n} else if (lower.includes('don')) {\n  route = 'route_don';\n} else if (lower.includes('forge')) {\n  route = 'route_forge';\n} else if (lower.includes('spindrift')) {\n  route = 'route_spindrift';\n}\n\n// --- Phase 5: Build routing namespace ---\nconst routing = {\n  targets: targets,\n  route: route,\n  isMulti: targets.length > 1,\n  handlerMode: targets.length > 1 ? 'multi' : 'single',\n  registry: null\n};\n\n// --- Phase 6: Validate required fields ---\nconst validation = {\n  valid: true,\n  errors: []\n};\n\nif (!normalized.proto) {\n  validation.valid = false;\n  validation.errors.push('Missing $PROTO');\n}\nif (!normalized.id) {\n  validation.valid = false;\n  validation.errors.push('Missing $ID');\n}\nif (!normalized.type) {\n  validation.valid = false;\n  validation.errors.push('Missing $TYPE');\n}\nif (targets.length === 0) {\n  validation.valid = false;\n  validation.errors.push('Missing or empty $TO');\n}\n\n// --- Phase 7: Build acknowledgment ---\nconst ack = {\n  id: normalized.id,\n  route: routing.route,\n  received: new Date().toISOString()\n};\n\n// --- Build journal filename (mirrors server.py convention) ---\nlet datePart = '';\ntry {\n  datePart = normalized.time.substring(0, 10);\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(datePart)) throw 'bad';\n} catch(e) {\n  datePart = new Date().toISOString().substring(0, 10);\n}\nconst journalFile = `${datePart}-${normalized.id}-${normalized.type.toLowerCase()}-${normalized.from.toLowerCase().replace(/ /g, '-')}.md`;\n\nconst result = {\n  headers,\n  normalized,\n  custom,\n  payloadLines,\n  payloadText,\n  routing,\n  validation,\n  ack,\n  journalFile\n};\n\nreturn [{ json: result }];"
+      },
+      "id": "node-parser",
+      "name": "AICP Parser",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.routing.route }}",
+                    "rightValue": "route_pharos",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "route_pharos"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.routing.route }}",
+                    "rightValue": "route_lodestar",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "route_lodestar"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.routing.route }}",
+                    "rightValue": "route_multi",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "route_multi"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.routing.route }}",
+                    "rightValue": "route_don",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "route_don"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "node-switch",
+      "name": "Route by Agent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json;\nitem.routing.targetResolved = 'Pharos';\nitem.routing.handlerMode = 'single';\nitem.routing.handlerStatus = 'live';\nitem.deliveryReport = {\n  target: 'Pharos',\n  mode: 'notification',\n  timestamp: new Date().toISOString()\n};\nitem.webhookPayload = {\n  event: 'new_message',\n  messageId: item.normalized.id,\n  from: item.normalized.from,\n  type: item.normalized.type,\n  task: item.normalized.task,\n  project: item.custom.PROJECT || 'InterAI-Protocol',\n  journalFile: item.journalFile,\n  timestamp: new Date().toISOString()\n};\nreturn [{ json: item }];"
+      },
+      "id": "node-deliver-pharos",
+      "name": "Deliver Pharos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3001/pharos/notify",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.webhookPayload) }}",
+        "options": {
+          "timeout": 5000,
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "id": "node-http-pharos",
+      "name": "Notify Pharos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 100],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json;\nitem.routing.targetResolved = 'Lodestar';\nitem.routing.handlerMode = 'single';\nitem.routing.handlerStatus = 'live';\nitem.deliveryReport = {\n  target: 'Lodestar',\n  mode: 'full_delivery',\n  timestamp: new Date().toISOString()\n};\nitem.webhookPayload = {\n  event: 'message_delivery',\n  messageId: item.normalized.id,\n  from: item.normalized.from,\n  to: item.normalized.to,\n  type: item.normalized.type,\n  task: item.normalized.task,\n  status: item.normalized.status,\n  project: item.custom.PROJECT || 'InterAI-Protocol',\n  payloadText: item.payloadText,\n  journalFile: item.journalFile,\n  timestamp: new Date().toISOString()\n};\nreturn [{ json: item }];"
+      },
+      "id": "node-deliver-lodestar",
+      "name": "Deliver Lodestar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3001/lodestar/deliver",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.webhookPayload) }}",
+        "options": {
+          "timeout": 5000,
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "id": "node-http-lodestar",
+      "name": "Send to Lodestar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 260],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json;\nconst targets = item.routing.targets || [];\nconst results = [];\n\n// Agent delivery config — local agents get notification, remote get full delivery\nconst agentConfig = {\n  'don':       { url: 'http://localhost:3001/don/notify',       mode: 'notification' },\n  'pharos':    { url: 'http://localhost:3001/pharos/notify',    mode: 'notification' },\n  'spindrift': { url: 'http://localhost:3001/spindrift/notify', mode: 'notification' },\n  'lodestar':  { url: 'http://localhost:3001/lodestar/deliver', mode: 'full_delivery' },\n  'forge':     { url: 'http://localhost:3001/forge/deliver',    mode: 'full_delivery' }\n};\n\nfor (const target of targets) {\n  const key = target.toLowerCase();\n  const config = agentConfig[key] || { url: null, mode: 'unknown' };\n\n  const outItem = JSON.parse(JSON.stringify(item));\n  outItem.routing.targetResolved = targets.join('+');\n  outItem.routing.handlerMode = 'multi';\n  outItem.routing.handlerStatus = 'live';\n  outItem.deliveryReport = {\n    target: target,\n    mode: config.mode,\n    timestamp: new Date().toISOString()\n  };\n\n  if (config.mode === 'full_delivery') {\n    outItem.webhookPayload = {\n      event: 'message_delivery',\n      messageId: item.normalized.id,\n      from: item.normalized.from,\n      to: item.normalized.to,\n      type: item.normalized.type,\n      task: item.normalized.task,\n      status: item.normalized.status,\n      project: item.custom.PROJECT || 'InterAI-Protocol',\n      payloadText: item.payloadText,\n      journalFile: item.journalFile,\n      timestamp: new Date().toISOString()\n    };\n  } else {\n    outItem.webhookPayload = {\n      event: 'new_message',\n      messageId: item.normalized.id,\n      from: item.normalized.from,\n      type: item.normalized.type,\n      task: item.normalized.task,\n      project: item.custom.PROJECT || 'InterAI-Protocol',\n      journalFile: item.journalFile,\n      timestamp: new Date().toISOString()\n    };\n  }\n  outItem.webhookUrl = config.url;\n  results.push({ json: outItem });\n}\n\nreturn results;"
+      },
+      "id": "node-deliver-multi",
+      "name": "Deliver Multi",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.webhookUrl }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.webhookPayload) }}",
+        "options": {
+          "timeout": 5000,
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "id": "node-http-multi",
+      "name": "Notify Multi Targets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 420],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json;\nitem.routing.targetResolved = 'Don';\nitem.routing.handlerMode = 'orchestrator';\nitem.routing.handlerStatus = 'live';\nitem.deliveryReport = {\n  target: 'Don',\n  mode: 'notification',\n  timestamp: new Date().toISOString()\n};\nitem.webhookPayload = {\n  event: 'new_message',\n  messageId: item.normalized.id,\n  from: item.normalized.from,\n  type: item.normalized.type,\n  task: item.normalized.task,\n  project: item.custom.PROJECT || 'InterAI-Protocol',\n  journalFile: item.journalFile,\n  timestamp: new Date().toISOString()\n};\nreturn [{ json: item }];"
+      },
+      "id": "node-deliver-don",
+      "name": "Deliver Don",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 580]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3001/don/notify",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.webhookPayload) }}",
+        "options": {
+          "timeout": 5000,
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "id": "node-http-don",
+      "name": "Notify Don",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 580],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json;\nitem.routing.targetResolved = 'Unknown';\nitem.routing.handlerMode = 'unresolved';\nitem.routing.handlerStatus = 'error';\nitem.deliveryReport = {\n  target: 'Unknown',\n  mode: 'none',\n  error: 'No matching agent found for routing target',\n  timestamp: new Date().toISOString()\n};\nreturn [{ json: item }];"
+      },
+      "id": "node-deliver-unknown",
+      "name": "Handle Unknown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 740]
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "options": {}
+      },
+      "id": "node-merge",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1400, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  \"ok\": true,\n  \"delivery\": \"accepted\",\n  \"id\": $json.normalized.id,\n  \"route\": $json.routing.route,\n  \"targetResolved\": $json.routing.targetResolved,\n  \"handlerMode\": $json.routing.handlerMode,\n  \"handlerStatus\": $json.routing.handlerStatus,\n  \"deliveryReport\": $json.deliveryReport,\n  \"validation\": $json.validation\n} }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "node-respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1620, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "AICP Parser", "type": "main", "index": 0 }]
+      ]
+    },
+    "AICP Parser": {
+      "main": [
+        [{ "node": "Route by Agent", "type": "main", "index": 0 }]
+      ]
+    },
+    "Route by Agent": {
+      "main": [
+        [{ "node": "Deliver Pharos", "type": "main", "index": 0 }],
+        [{ "node": "Deliver Lodestar", "type": "main", "index": 0 }],
+        [{ "node": "Deliver Multi", "type": "main", "index": 0 }],
+        [{ "node": "Deliver Don", "type": "main", "index": 0 }],
+        [{ "node": "Handle Unknown", "type": "main", "index": 0 }]
+      ]
+    },
+    "Deliver Pharos": {
+      "main": [
+        [{ "node": "Notify Pharos", "type": "main", "index": 0 }]
+      ]
+    },
+    "Notify Pharos": {
+      "main": [
+        [{ "node": "Merge", "type": "main", "index": 0 }]
+      ]
+    },
+    "Deliver Lodestar": {
+      "main": [
+        [{ "node": "Send to Lodestar", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send to Lodestar": {
+      "main": [
+        [{ "node": "Merge", "type": "main", "index": 0 }]
+      ]
+    },
+    "Deliver Multi": {
+      "main": [
+        [{ "node": "Notify Multi Targets", "type": "main", "index": 0 }]
+      ]
+    },
+    "Notify Multi Targets": {
+      "main": [
+        [{ "node": "Merge", "type": "main", "index": 0 }]
+      ]
+    },
+    "Deliver Don": {
+      "main": [
+        [{ "node": "Notify Don", "type": "main", "index": 0 }]
+      ]
+    },
+    "Notify Don": {
+      "main": [
+        [{ "node": "Merge", "type": "main", "index": 0 }]
+      ]
+    },
+    "Handle Unknown": {
+      "main": [
+        [{ "node": "Merge", "type": "main", "index": 0 }]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [{ "node": "Respond to Webhook", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "AICP" },
+    { "name": "InterAI-Protocol" }
+  ],
+  "triggerCount": 1,
+  "pinData": {}
+}
