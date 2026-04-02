@@ -389,11 +389,30 @@ class RelayHandler(SimpleHTTPRequestHandler):
                     webhook_url = N8N_CONFIG['N8N_WEBHOOK_URL']
                     timeout_s = N8N_CONFIG.get('N8N_TIMEOUT_MS', 5000) / 1000.0
 
+                    # Include parsed routing hints so n8n can evolve from
+                    # passive ingress logging to protocol-aware dispatch.
+                    to_field = meta.get('to', '') or ''
+                    target_list = [t.strip() for t in to_field.split(',') if t.strip()]
+                    route = 'route_unknown'
+                    lower_targets = [t.lower() for t in target_list]
+                    if len(target_list) > 1:
+                        route = 'route_multi'
+                    elif 'pharos' in lower_targets:
+                        route = 'route_pharos'
+                    elif 'lodestar' in lower_targets:
+                        route = 'route_lodestar'
+                    elif 'don' in lower_targets:
+                        route = 'route_don'
+
                     n8n_payload = json.dumps({
                         'message': raw_body,
                         'messageId': meta['id'],
                         'project': target_project,
-                        'targets': ['n8n'],
+                        'targets': target_list,
+                        'routing': {
+                            'route': route,
+                            'isMulti': len(target_list) > 1
+                        },
                         'meta': {
                             'type': meta.get('type'),
                             'from': meta.get('from'),
