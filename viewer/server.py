@@ -16,6 +16,10 @@ Endpoints:
     GET  /api/integrations                   — Return configured integration status
     GET  /api/project-registry               — Get the project registry (metadata)
     POST /api/project-registry               — Create a new project in the registry
+    POST /agents/<id>/notify                 — Receive notification webhook from n8n
+    POST /agents/<id>/deliver                — Receive full delivery webhook from n8n
+    GET  /agents/<id>/inbox                  — Read agent's pending notifications
+    POST /agents/<id>/inbox/clear            — Mark notifications as read
 
 Usage:
     python viewer/server.py
@@ -55,6 +59,10 @@ N8N_CONFIG = {
 
 # Project registry
 PROJECT_REGISTRY_FILE = os.path.join(SCRIPT_DIR, 'project-registry.json')
+
+# Agent notification inbox
+INBOX_DIR = os.path.join(SCRIPT_DIR, 'inbox')
+VALID_AGENTS = {'don', 'pharos', 'lodestar', 'forge', 'spindrift'}
 
 
 def load_projects_config():
@@ -148,6 +156,8 @@ class RelayHandler(SimpleHTTPRequestHandler):
             self.handle_integrations()
         elif path.startswith('/api/project/'):
             self.handle_project_resource(path)
+        elif re.match(r'^/agents/\w+/inbox$', path):
+            self.handle_get_inbox(path)
         else:
             super().do_GET()
 
@@ -159,6 +169,12 @@ class RelayHandler(SimpleHTTPRequestHandler):
             self.handle_relay_to_n8n()
         elif self.path == '/api/project-registry':
             self.handle_post_project_registry()
+        elif re.match(r'^/agents/\w+/notify$', self.path):
+            self.handle_agent_notify(self.path)
+        elif re.match(r'^/agents/\w+/deliver$', self.path):
+            self.handle_agent_deliver(self.path)
+        elif re.match(r'^/agents/\w+/inbox/clear$', self.path):
+            self.handle_inbox_clear(self.path)
         else:
             self.send_error_json(404, 'Not found')
 
@@ -704,6 +720,156 @@ class RelayHandler(SimpleHTTPRequestHandler):
         with open(index_path, 'w', encoding='utf-8') as f:
             json.dump(index, f, indent=2, ensure_ascii=False)
             f.write('\n')
+
+    # ---- Agent Notification Handlers ----
+
+    def _extract_agent_id(self, path):
+        """Extract agent ID from /agents/{agentId}/... path."""
+        parts = path.strip('/').split('/')
+        if len(parts) >= 2:
+            return parts[1].lower()
+        return None
+
+    def _get_inbox_path(self, agent_id):
+        """Get the inbox JSON file path for an agent."""
+        return os.path.join(INBOX_DIR, f'{agent_id}.json')
+
+    def _read_inbox(self, agent_id):
+        """Read an agent's inbox, creating if needed."""
+        inbox_path = self._get_inbox_path(agent_id)
+        if os.path.exists(inbox_path):
+            try:
+                with open(inbox_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, IOError):
+                pass
+        return {'agentId': agent_id, 'notifications': []}
+
+    def _write_inbox(self, agent_id, inbox_data):
+        """Write an agent's inbox to disk."""
+        os.makedirs(INBOX_DIR, exist_ok=True)
+        inbox_path = self._get_inbox_path(agent_id)
+        with open(inbox_path, 'w', encoding='utf-8') as f:
+            json.dump(inbox_data, f, indent=2)
+
+    def _append_notification(self, agent_id, payload, event_type):
+        """Append a notification to an agent's inbox."""
+        inbox = self._read_inbox(agent_id)
+        notification = dict(payload)
+        notification['receivedAt'] = datetime.utcnow().isoformat() + 'Z'
+        notification['read'] = False
+        notification['eventType'] = event_type
+        inbox['notifications'].append(notification)
+        self._write_inbox(agent_id, inbox)
+        return notification
+
+    def handle_agent_notify(self, path):
+        """POST /agents/{agentId}/notify — receive notification webhook from n8n."""
+        agent_id = self._extract_agent_id(path)
+        if agent_id not in VALID_AGENTS:
+            self.send_error_json(404, f'Unknown agent: {agent_id}')
+            return
+
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length == 0:
+                self.send_error_json(400, 'Empty request body')
+                return
+
+            body = self.rfile.read(content_length).decode('utf-8')
+            payload = json.loads(body)
+
+            notification = self._append_notification(agent_id, payload, 'notify')
+            msg_id = payload.get('messageId', 'unknown')
+            sender = payload.get('from', 'unknown')
+
+            print(f'[NOTIFY] New message for {agent_id}: {msg_id} from {sender}')
+
+            self.send_json(200, {
+                'ok': True,
+                'received': True,
+                'agentId': agent_id,
+                'messageId': msg_id,
+                'timestamp': notification['receivedAt']
+            })
+
+        except json.JSONDecodeError:
+            self.send_error_json(400, 'Invalid JSON body')
+        except Exception as e:
+            self.send_error_json(500, f'Notification error: {str(e)}')
+
+    def handle_agent_deliver(self, path):
+        """POST /agents/{agentId}/deliver — receive full delivery webhook from n8n."""
+        agent_id = self._extract_agent_id(path)
+        if agent_id not in VALID_AGENTS:
+            self.send_error_json(404, f'Unknown agent: {agent_id}')
+            return
+
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length == 0:
+                self.send_error_json(400, 'Empty request body')
+                return
+
+            body = self.rfile.read(content_length).decode('utf-8')
+            payload = json.loads(body)
+
+            notification = self._append_notification(agent_id, payload, 'deliver')
+            msg_id = payload.get('messageId', 'unknown')
+            sender = payload.get('from', 'unknown')
+
+            print(f'[DELIVER] Full message for {agent_id}: {msg_id} from {sender}')
+
+            self.send_json(200, {
+                'ok': True,
+                'received': True,
+                'agentId': agent_id,
+                'messageId': msg_id,
+                'deliveryMode': 'full',
+                'timestamp': notification['receivedAt']
+            })
+
+        except json.JSONDecodeError:
+            self.send_error_json(400, 'Invalid JSON body')
+        except Exception as e:
+            self.send_error_json(500, f'Delivery error: {str(e)}')
+
+    def handle_get_inbox(self, path):
+        """GET /agents/{agentId}/inbox — read agent's pending notifications."""
+        agent_id = self._extract_agent_id(path)
+        if agent_id not in VALID_AGENTS:
+            self.send_error_json(404, f'Unknown agent: {agent_id}')
+            return
+
+        # Check for ?unread=true query param
+        query = self.path.split('?')[1] if '?' in self.path else ''
+        unread_only = 'unread=true' in query
+
+        inbox = self._read_inbox(agent_id)
+
+        if unread_only:
+            inbox['notifications'] = [n for n in inbox['notifications'] if not n.get('read')]
+
+        inbox['unreadCount'] = sum(1 for n in inbox['notifications'] if not n.get('read'))
+        self.send_json(200, inbox)
+
+    def handle_inbox_clear(self, path):
+        """POST /agents/{agentId}/inbox/clear — mark all notifications as read."""
+        agent_id = self._extract_agent_id(path)
+        if agent_id not in VALID_AGENTS:
+            self.send_error_json(404, f'Unknown agent: {agent_id}')
+            return
+
+        inbox = self._read_inbox(agent_id)
+        cleared = 0
+        for n in inbox['notifications']:
+            if not n.get('read'):
+                n['read'] = True
+                cleared += 1
+        self._write_inbox(agent_id, inbox)
+
+        print(f'[INBOX] Cleared {cleared} notifications for {agent_id}')
+        self.send_json(200, {'ok': True, 'agentId': agent_id, 'cleared': cleared})
 
     def send_json(self, status_code, data):
         """Send a JSON response."""

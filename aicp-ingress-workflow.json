@@ -116,7 +116,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:3001/pharos/notify",
+        "url": "http://localhost:8080/agents/pharos/notify",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.webhookPayload) }}",
@@ -146,7 +146,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:3001/lodestar/deliver",
+        "url": "http://localhost:8080/agents/lodestar/deliver",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.webhookPayload) }}",
@@ -165,7 +165,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const item = $input.first().json;\nconst targets = item.routing.targets || [];\nconst results = [];\n\n// Agent delivery config — local agents get notification, remote get full delivery\nconst agentConfig = {\n  'don':       { url: 'http://localhost:3001/don/notify',       mode: 'notification' },\n  'pharos':    { url: 'http://localhost:3001/pharos/notify',    mode: 'notification' },\n  'spindrift': { url: 'http://localhost:3001/spindrift/notify', mode: 'notification' },\n  'lodestar':  { url: 'http://localhost:3001/lodestar/deliver', mode: 'full_delivery' },\n  'forge':     { url: 'http://localhost:3001/forge/deliver',    mode: 'full_delivery' }\n};\n\nfor (const target of targets) {\n  const key = target.toLowerCase();\n  const config = agentConfig[key] || { url: null, mode: 'unknown' };\n\n  const outItem = JSON.parse(JSON.stringify(item));\n  outItem.routing.targetResolved = targets.join('+');\n  outItem.routing.handlerMode = 'multi';\n  outItem.routing.handlerStatus = 'live';\n  outItem.deliveryReport = {\n    target: target,\n    mode: config.mode,\n    timestamp: new Date().toISOString()\n  };\n\n  if (config.mode === 'full_delivery') {\n    outItem.webhookPayload = {\n      event: 'message_delivery',\n      messageId: item.normalized.id,\n      from: item.normalized.from,\n      to: item.normalized.to,\n      type: item.normalized.type,\n      task: item.normalized.task,\n      status: item.normalized.status,\n      project: item.custom.PROJECT || 'InterAI-Protocol',\n      payloadText: item.payloadText,\n      journalFile: item.journalFile,\n      timestamp: new Date().toISOString()\n    };\n  } else {\n    outItem.webhookPayload = {\n      event: 'new_message',\n      messageId: item.normalized.id,\n      from: item.normalized.from,\n      type: item.normalized.type,\n      task: item.normalized.task,\n      project: item.custom.PROJECT || 'InterAI-Protocol',\n      journalFile: item.journalFile,\n      timestamp: new Date().toISOString()\n    };\n  }\n  outItem.webhookUrl = config.url;\n  results.push({ json: outItem });\n}\n\nreturn results;"
+        "jsCode": "const item = $input.first().json;\nconst targets = item.routing.targets || [];\nconst results = [];\n\n// Agent delivery config — local agents get notification, remote get full delivery\nconst agentConfig = {\n  'don':       { url: 'http://localhost:8080/agents/don/notify',       mode: 'notification' },\n  'pharos':    { url: 'http://localhost:8080/agents/pharos/notify',    mode: 'notification' },\n  'spindrift': { url: 'http://localhost:8080/agents/spindrift/notify', mode: 'notification' },\n  'lodestar':  { url: 'http://localhost:8080/agents/lodestar/deliver', mode: 'full_delivery' },\n  'forge':     { url: 'http://localhost:8080/agents/forge/deliver',    mode: 'full_delivery' }\n};\n\nfor (const target of targets) {\n  const key = target.toLowerCase();\n  const config = agentConfig[key] || { url: null, mode: 'unknown' };\n\n  const outItem = JSON.parse(JSON.stringify(item));\n  outItem.routing.targetResolved = targets.join('+');\n  outItem.routing.handlerMode = 'multi';\n  outItem.routing.handlerStatus = 'live';\n  outItem.deliveryReport = {\n    target: target,\n    mode: config.mode,\n    timestamp: new Date().toISOString()\n  };\n\n  if (config.mode === 'full_delivery') {\n    outItem.webhookPayload = {\n      event: 'message_delivery',\n      messageId: item.normalized.id,\n      from: item.normalized.from,\n      to: item.normalized.to,\n      type: item.normalized.type,\n      task: item.normalized.task,\n      status: item.normalized.status,\n      project: item.custom.PROJECT || 'InterAI-Protocol',\n      payloadText: item.payloadText,\n      journalFile: item.journalFile,\n      timestamp: new Date().toISOString()\n    };\n  } else {\n    outItem.webhookPayload = {\n      event: 'new_message',\n      messageId: item.normalized.id,\n      from: item.normalized.from,\n      type: item.normalized.type,\n      task: item.normalized.task,\n      project: item.custom.PROJECT || 'InterAI-Protocol',\n      journalFile: item.journalFile,\n      timestamp: new Date().toISOString()\n    };\n  }\n  outItem.webhookUrl = config.url;\n  results.push({ json: outItem });\n}\n\nreturn results;"
       },
       "id": "node-deliver-multi",
       "name": "Deliver Multi",
@@ -206,7 +206,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:3001/don/notify",
+        "url": "http://localhost:8080/agents/don/notify",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.webhookPayload) }}",
