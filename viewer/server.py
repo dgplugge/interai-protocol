@@ -14,6 +14,8 @@ Endpoints:
     POST /api/relay                          — Save message to correct project journal
     POST /api/relay-to-n8n                   — Save locally + forward to n8n webhook
     GET  /api/integrations                   — Return configured integration status
+    GET  /api/agent-hub/config               — Return API hub agent delivery config
+    POST /api/agent-hub/roundtable           — Send orchestrated round-table prompts
     GET  /api/project-registry               — Get the project registry (metadata)
     POST /api/project-registry               — Create a new project in the registry
 
@@ -55,6 +57,49 @@ N8N_CONFIG = {
 
 # Project registry
 PROJECT_REGISTRY_FILE = os.path.join(SCRIPT_DIR, 'project-registry.json')
+
+# Agent API hub integration config
+AGENT_API_CONFIG_FILE = os.path.join(SCRIPT_DIR, 'agent-api-config.json')
+AGENT_API_CONFIG = {
+    'roundtable': {
+        'timeout_ms': 12000,
+        'allow_insecure_http': False
+    },
+    'agents': {
+        'Pharos': {
+            'platform': 'Claude (Anthropic)',
+            'enabled': False,
+            'endpoint': '',
+            'method': 'POST',
+            'headers': {'Content-Type': 'application/json'},
+            'mock_reply': 'Pharos: endpoint not configured. Add endpoint in agent-api-config.json.'
+        },
+        'Lodestar': {
+            'platform': 'ChatGPT (OpenAI)',
+            'enabled': False,
+            'endpoint': '',
+            'method': 'POST',
+            'headers': {'Content-Type': 'application/json'},
+            'mock_reply': 'Lodestar: endpoint not configured. Add endpoint in agent-api-config.json.'
+        },
+        'Forge': {
+            'platform': 'Codex (OpenAI)',
+            'enabled': False,
+            'endpoint': '',
+            'method': 'POST',
+            'headers': {'Content-Type': 'application/json'},
+            'mock_reply': 'Forge: endpoint not configured. Add endpoint in agent-api-config.json.'
+        },
+        'SpinDrift': {
+            'platform': 'Cursor',
+            'enabled': False,
+            'endpoint': '',
+            'method': 'POST',
+            'headers': {'Content-Type': 'application/json'},
+            'mock_reply': 'SpinDrift: endpoint not configured. Add endpoint in agent-api-config.json.'
+        }
+    }
+}
 
 
 def load_projects_config():
@@ -102,6 +147,36 @@ def load_n8n_config():
         print(f'[N8N] Config load error: {e} — integration disabled')
 
 
+def load_agent_api_config():
+    """Load API hub configuration from agent-api-config.json."""
+    global AGENT_API_CONFIG
+    try:
+        if os.path.exists(AGENT_API_CONFIG_FILE):
+            with open(AGENT_API_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                loaded = json.load(f)
+
+            # Round-table settings
+            roundtable = loaded.get('roundtable', {})
+            AGENT_API_CONFIG['roundtable'].update({
+                'timeout_ms': int(roundtable.get('timeout_ms', AGENT_API_CONFIG['roundtable']['timeout_ms'])),
+                'allow_insecure_http': bool(roundtable.get('allow_insecure_http', False))
+            })
+
+            # Agent settings (merge by key)
+            loaded_agents = loaded.get('agents', {})
+            for agent_name, cfg in loaded_agents.items():
+                current = AGENT_API_CONFIG['agents'].get(agent_name, {})
+                merged = dict(current)
+                merged.update(cfg if isinstance(cfg, dict) else {})
+                AGENT_API_CONFIG['agents'][agent_name] = merged
+
+            print(f'[API-HUB] Loaded config for {len(AGENT_API_CONFIG["agents"])} agent(s)')
+        else:
+            print(f'[API-HUB] No config file at {AGENT_API_CONFIG_FILE} — using mock mode defaults')
+    except (json.JSONDecodeError, IOError, ValueError) as e:
+        print(f'[API-HUB] Config load error: {e} — using defaults')
+
+
 def get_project_index_path(project_id):
     """Get the journal-index.json path for a project."""
     proj = PROJECTS.get(project_id)
@@ -146,6 +221,8 @@ class RelayHandler(SimpleHTTPRequestHandler):
             self.handle_get_project_registry()
         elif path == '/api/integrations':
             self.handle_integrations()
+        elif path == '/api/agent-hub/config':
+            self.handle_agent_hub_config()
         elif path.startswith('/api/project/'):
             self.handle_project_resource(path)
         else:
@@ -157,6 +234,8 @@ class RelayHandler(SimpleHTTPRequestHandler):
             self.handle_relay()
         elif self.path == '/api/relay-to-n8n':
             self.handle_relay_to_n8n()
+        elif self.path == '/api/agent-hub/roundtable':
+            self.handle_agent_hub_roundtable()
         elif self.path == '/api/project-registry':
             self.handle_post_project_registry()
         else:
@@ -472,6 +551,243 @@ class RelayHandler(SimpleHTTPRequestHandler):
         }
         self.send_json(200, {'ok': True, 'integrations': integrations})
 
+    def handle_agent_hub_config(self):
+        """
+        GET /api/agent-hub/config — returns visible API hub configuration.
+        Secrets are never returned; only delivery capability flags.
+        """
+        agents = []
+        for name, cfg in AGENT_API_CONFIG.get('agents', {}).items():
+            endpoint = str(cfg.get('endpoint', '') or '').strip()
+            agents.append({
+                'name': name,
+                'platform': cfg.get('platform', ''),
+                'enabled': bool(cfg.get('enabled', False)),
+                'endpointConfigured': bool(endpoint)
+            })
+
+        self.send_json(200, {
+            'ok': True,
+            'roundtable': AGENT_API_CONFIG.get('roundtable', {}),
+            'agents': agents
+        })
+
+    def handle_agent_hub_roundtable(self):
+        """
+        POST /api/agent-hub/roundtable
+        Accepts one orchestrator prompt and sends it to selected agent endpoints
+        in a deterministic turn order. Returns all replies as a transcript payload.
+        """
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length == 0:
+                self.send_error_json(400, 'Empty request body')
+                return
+
+            raw_body = self.rfile.read(content_length).decode('utf-8')
+            payload = json.loads(raw_body)
+
+            prompt = str(payload.get('prompt', '')).strip()
+            agents = payload.get('agents', [])
+            turn_order = payload.get('turnOrder', [])
+
+            if not prompt:
+                self.send_error_json(400, 'Missing prompt')
+                return
+            if not isinstance(agents, list) or len(agents) == 0:
+                self.send_error_json(400, 'At least one agent is required')
+                return
+
+            # Keep requested order but only for selected agents.
+            normalized_agents = []
+            for agent in agents:
+                name = str(agent).strip()
+                if name and name not in normalized_agents:
+                    normalized_agents.append(name)
+
+            ordered = []
+            for agent in turn_order:
+                name = str(agent).strip()
+                if name and name in normalized_agents and name not in ordered:
+                    ordered.append(name)
+            for agent in normalized_agents:
+                if agent not in ordered:
+                    ordered.append(agent)
+
+            replies = []
+            for idx, agent_name in enumerate(ordered):
+                round_payload = {
+                    'proto': payload.get('proto', 'AICP/1.0'),
+                    'type': payload.get('type', 'REQUEST'),
+                    'from': payload.get('from', 'Don'),
+                    'task': payload.get('task', ''),
+                    'project': payload.get('project', 'InterAI-Protocol'),
+                    'domain': payload.get('domain', 'Multi-Agent Systems'),
+                    'contextRef': payload.get('contextRef'),
+                    'turnMode': payload.get('turnMode', 'round_robin'),
+                    'turn': idx + 1,
+                    'turnOrder': ordered,
+                    'agent': agent_name,
+                    'prompt': prompt,
+                    'priorReplies': replies
+                }
+                result = self.call_agent_roundtable(agent_name, round_payload, idx + 1)
+                replies.append(result)
+
+            self.send_json(200, {
+                'ok': True,
+                'turnMode': payload.get('turnMode', 'round_robin'),
+                'turnOrder': ordered,
+                'replies': replies
+            })
+        except json.JSONDecodeError:
+            self.send_error_json(400, 'Invalid JSON body')
+        except Exception as e:
+            self.send_error_json(500, f'Agent hub error: {str(e)}')
+
+    def call_agent_roundtable(self, agent_name, outbound_payload, round_num):
+        """
+        Calls a configured agent endpoint.
+        Falls back to deterministic mock replies when endpoint is disabled/unset.
+        """
+        cfg = AGENT_API_CONFIG.get('agents', {}).get(agent_name)
+        if not cfg:
+            return {
+                'agent': agent_name,
+                'round': round_num,
+                'ok': False,
+                'delivery': 'error',
+                'error': f'Unknown agent: {agent_name}'
+            }
+
+        enabled = bool(cfg.get('enabled', False))
+        endpoint = str(cfg.get('endpoint', '') or '').strip()
+
+        if (not enabled) or (not endpoint):
+            return {
+                'agent': agent_name,
+                'round': round_num,
+                'ok': True,
+                'delivery': 'mock',
+                'reply': cfg.get('mock_reply', f'{agent_name}: mock mode reply')
+            }
+
+        allow_insecure = bool(AGENT_API_CONFIG.get('roundtable', {}).get('allow_insecure_http', False))
+        if endpoint.startswith('http://') and not allow_insecure:
+            return {
+                'agent': agent_name,
+                'round': round_num,
+                'ok': False,
+                'delivery': 'error',
+                'error': 'Insecure HTTP endpoint blocked (set allow_insecure_http=true to override).'
+            }
+
+        headers = {}
+        for key, value in dict(cfg.get('headers', {})).items():
+            headers[str(key)] = self.resolve_header_tokens(str(value))
+
+        # Default content type for JSON requests
+        if not any(k.lower() == 'content-type' for k in headers):
+            headers['Content-Type'] = 'application/json'
+
+        data = json.dumps(outbound_payload).encode('utf-8')
+        method = str(cfg.get('method', 'POST') or 'POST').upper()
+        timeout_s = max(1, int(AGENT_API_CONFIG.get('roundtable', {}).get('timeout_ms', 12000)) / 1000.0)
+
+        try:
+            req = Request(endpoint, data=data, headers=headers, method=method)
+            response = urlopen(req, timeout=timeout_s)
+            body = response.read()
+            reply_text = self.extract_reply_text(body)
+            return {
+                'agent': agent_name,
+                'round': round_num,
+                'ok': True,
+                'delivery': 'https',
+                'reply': reply_text
+            }
+        except HTTPError as e:
+            return {
+                'agent': agent_name,
+                'round': round_num,
+                'ok': False,
+                'delivery': 'error',
+                'error': f'HTTP {e.code}: {e.reason}'
+            }
+        except URLError as e:
+            return {
+                'agent': agent_name,
+                'round': round_num,
+                'ok': False,
+                'delivery': 'error',
+                'error': f'Network error: {e.reason}'
+            }
+        except Exception as e:
+            return {
+                'agent': agent_name,
+                'round': round_num,
+                'ok': False,
+                'delivery': 'error',
+                'error': str(e)
+            }
+
+    def resolve_header_tokens(self, value):
+        """
+        Resolves header values with ${ENV:VAR_NAME} placeholders.
+        Missing env variables resolve to an empty string.
+        """
+        pattern = re.compile(r'\$\{ENV:([A-Z0-9_]+)\}')
+
+        def repl(match):
+            env_name = match.group(1)
+            return os.getenv(env_name, '')
+
+        return pattern.sub(repl, value)
+
+    def extract_reply_text(self, body_bytes):
+        """
+        Extract a readable reply from arbitrary API JSON/text formats.
+        """
+        text = body_bytes.decode('utf-8', errors='replace').strip()
+        if not text:
+            return ''
+
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            return text
+
+        if isinstance(parsed, dict):
+            # Common direct fields
+            for key in ('reply', 'message', 'content', 'output_text', 'text'):
+                val = parsed.get(key)
+                if isinstance(val, str) and val.strip():
+                    return val.strip()
+
+            # OpenAI-like choices
+            choices = parsed.get('choices')
+            if isinstance(choices, list) and choices:
+                first = choices[0]
+                if isinstance(first, dict):
+                    msg = first.get('message')
+                    if isinstance(msg, dict) and isinstance(msg.get('content'), str):
+                        return msg['content']
+                    if isinstance(first.get('text'), str):
+                        return first['text']
+
+            # Anthropic-like content array
+            content = parsed.get('content')
+            if isinstance(content, list):
+                chunks = []
+                for item in content:
+                    if isinstance(item, dict) and isinstance(item.get('text'), str):
+                        chunks.append(item['text'])
+                if chunks:
+                    return '\n'.join(chunks)
+
+        # Fallback to JSON text
+        return json.dumps(parsed, ensure_ascii=False)
+
     def handle_get_project_registry(self):
         """
         GET /api/project-registry — serve the project registry JSON.
@@ -733,6 +1049,9 @@ def main():
 
     # Load n8n integration config
     load_n8n_config()
+
+    # Load API hub integration config
+    load_agent_api_config()
 
     print(f'Open http://localhost:{PORT}')
     print()

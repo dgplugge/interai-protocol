@@ -1,0 +1,610 @@
+openapi: 3.1.0
+info:
+  title: InterAI Agent Hub API
+  version: 1.0.0
+  summary: VB.NET-first API contract for multi-agent round-table orchestration
+  description: |
+    HTTP contract for the Agent Hub used to orchestrate multi-agent threads and dispatch rounds.
+    This contract is aligned to `protocol-spec/agent-hub-vbnet-api-contract.md`.
+servers:
+  - url: http://localhost:8080
+    description: Local development
+security:
+  - BearerAuth: []
+tags:
+  - name: Threads
+  - name: Dispatch
+  - name: Providers
+paths:
+  /threads/{threadId}/messages:
+    post:
+      tags: [Threads]
+      summary: Submit a message into a thread
+      operationId: createThreadMessage
+      parameters:
+        - $ref: '#/components/parameters/threadId'
+        - $ref: '#/components/parameters/idempotencyKey'
+        - $ref: '#/components/parameters/correlationIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMessageRequestDto'
+      responses:
+        '201':
+          description: Message created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateMessageResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /threads/{threadId}/transcript:
+    get:
+      tags: [Threads]
+      summary: Read ordered thread transcript
+      operationId: getThreadTranscript
+      parameters:
+        - $ref: '#/components/parameters/threadId'
+        - $ref: '#/components/parameters/after'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/agent'
+        - $ref: '#/components/parameters/correlationIdHeader'
+      responses:
+        '200':
+          description: Transcript page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetTranscriptResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /threads/{threadId}/dispatch:
+    post:
+      tags: [Dispatch]
+      summary: Execute one dispatch round for a thread
+      operationId: dispatchThreadRound
+      parameters:
+        - $ref: '#/components/parameters/threadId'
+        - $ref: '#/components/parameters/idempotencyKey'
+        - $ref: '#/components/parameters/correlationIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DispatchRequestDto'
+      responses:
+        '200':
+          description: Dispatch completed or partially completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DispatchResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /threads/{threadId}/dispatch/{roundId}/cancel:
+    post:
+      tags: [Dispatch]
+      summary: Cancel an in-flight dispatch round
+      operationId: cancelDispatchRound
+      parameters:
+        - $ref: '#/components/parameters/threadId'
+        - $ref: '#/components/parameters/roundId'
+        - $ref: '#/components/parameters/idempotencyKey'
+        - $ref: '#/components/parameters/correlationIdHeader'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelDispatchRequestDto'
+      responses:
+        '202':
+          description: Cancellation accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /threads/{threadId}/messages/{messageId}/retry:
+    post:
+      tags: [Dispatch]
+      summary: Retry delivery for a failed message
+      operationId: retryMessageDelivery
+      parameters:
+        - $ref: '#/components/parameters/threadId'
+        - $ref: '#/components/parameters/messageId'
+        - $ref: '#/components/parameters/idempotencyKey'
+        - $ref: '#/components/parameters/correlationIdHeader'
+      responses:
+        '202':
+          description: Retry accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /threads/{threadId}/events:
+    get:
+      tags: [Threads]
+      summary: Stream live thread events (SSE)
+      operationId: streamThreadEvents
+      parameters:
+        - $ref: '#/components/parameters/threadId'
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: "SSE payload stream (`event: ...`, `data: ...`)"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /providers:
+    get:
+      tags: [Providers]
+      summary: List configured providers and capabilities
+      operationId: getProviders
+      parameters:
+        - $ref: '#/components/parameters/correlationIdHeader'
+      responses:
+        '200':
+          description: Provider catalog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetProvidersResponseDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    threadId:
+      name: threadId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Unique thread identifier (ULID/UUIDv7 recommended)
+    roundId:
+      name: roundId
+      in: path
+      required: true
+      schema:
+        type: string
+    messageId:
+      name: messageId
+      in: path
+      required: true
+      schema:
+        type: string
+    idempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+      description: Client-generated unique key for safely retrying POST operations
+    correlationIdHeader:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      schema:
+        type: string
+    after:
+      name: after
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Cursor/marker (timestamp or message id)
+    limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+        default: 100
+    agent:
+      name: agent
+      in: query
+      required: false
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseDto'
+    Unauthorized:
+      description: Authentication failed or missing
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseDto'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseDto'
+    Conflict:
+      description: Conflict (duplicate idempotency key, active lock, invalid state)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseDto'
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseDto'
+  schemas:
+    DispatchMode:
+      type: string
+      enum: [round_robin, sequential, parallel]
+    MessageStatus:
+      type: string
+      enum: [pending, sent, succeeded, failed, cancelled, skipped]
+    RoundStatus:
+      type: string
+      enum: [queued, running, completed, partial, failed, cancelled]
+    ThreadSummaryDto:
+      type: object
+      additionalProperties: false
+      required: [id, title, createdAtUtc, updatedAtUtc, lastMessageId]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        createdAtUtc:
+          type: string
+          format: date-time
+        updatedAtUtc:
+          type: string
+          format: date-time
+        lastMessageId:
+          type: string
+    MessageDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - threadId
+        - from
+        - to
+        - role
+        - provider
+        - content
+        - status
+        - createdAtUtc
+      properties:
+        id:
+          type: string
+        threadId:
+          type: string
+        from:
+          type: string
+        to:
+          type: array
+          items:
+            type: string
+        role:
+          type: string
+        provider:
+          type: string
+        content:
+          type: string
+        parentId:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/MessageStatus'
+        createdAtUtc:
+          type: string
+          format: date-time
+        sentAtUtc:
+          type: string
+          format: date-time
+          nullable: true
+        completedAtUtc:
+          type: string
+          format: date-time
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+    CreateMessageRequestDto:
+      type: object
+      additionalProperties: false
+      required: [from, to, role, provider, content]
+      properties:
+        from:
+          type: string
+        to:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        role:
+          type: string
+        provider:
+          type: string
+        content:
+          type: string
+        parentId:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+    CreateMessageResponseDto:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message:
+          $ref: '#/components/schemas/MessageDto'
+    GetTranscriptResponseDto:
+      type: object
+      additionalProperties: false
+      required: [thread, messages]
+      properties:
+        thread:
+          $ref: '#/components/schemas/ThreadSummaryDto'
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageDto'
+        nextCursor:
+          type: string
+          nullable: true
+    RetryPolicyDto:
+      type: object
+      additionalProperties: false
+      required: [maxRetries, initialBackoffMs, backoffMultiplier]
+      properties:
+        maxRetries:
+          type: integer
+          minimum: 0
+          maximum: 10
+          default: 2
+        initialBackoffMs:
+          type: integer
+          minimum: 0
+          default: 1000
+        backoffMultiplier:
+          type: number
+          minimum: 1
+          default: 2
+    DispatchRequestDto:
+      type: object
+      additionalProperties: false
+      required: [mode, speakerOrder, sharePriorResponses, maxTurns, timeoutMsDefault, retryPolicy, targetMessageId]
+      properties:
+        mode:
+          $ref: '#/components/schemas/DispatchMode'
+        speakerOrder:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        sharePriorResponses:
+          type: boolean
+          default: true
+        maxTurns:
+          type: integer
+          minimum: 1
+          default: 4
+        timeoutMsDefault:
+          type: integer
+          minimum: 1
+          default: 30000
+        retryPolicy:
+          $ref: '#/components/schemas/RetryPolicyDto'
+        targetMessageId:
+          type: string
+    DispatchRoundDto:
+      type: object
+      additionalProperties: false
+      required: [roundId, threadId, mode, speakerOrder, status]
+      properties:
+        roundId:
+          type: string
+        threadId:
+          type: string
+        mode:
+          $ref: '#/components/schemas/DispatchMode'
+        speakerOrder:
+          type: array
+          items:
+            type: string
+        status:
+          $ref: '#/components/schemas/RoundStatus'
+        startedAtUtc:
+          type: string
+          format: date-time
+          nullable: true
+        finishedAtUtc:
+          type: string
+          format: date-time
+          nullable: true
+    DispatchResultDto:
+      type: object
+      additionalProperties: false
+      required:
+        - roundId
+        - messageId
+        - provider
+        - agent
+        - requestedTurn
+        - durationMs
+        - attemptCount
+      properties:
+        roundId:
+          type: string
+        messageId:
+          type: string
+        provider:
+          type: string
+        agent:
+          type: string
+        requestedTurn:
+          type: integer
+          minimum: 1
+        durationMs:
+          type: integer
+          minimum: 0
+        attemptCount:
+          type: integer
+          minimum: 1
+        providerRequestId:
+          type: string
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+        outputMessage:
+          $ref: '#/components/schemas/MessageDto'
+    DispatchResponseDto:
+      type: object
+      additionalProperties: false
+      required: [round, results]
+      properties:
+        round:
+          $ref: '#/components/schemas/DispatchRoundDto'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DispatchResultDto'
+    ProviderDto:
+      type: object
+      additionalProperties: false
+      required: [name, providerType, supportsStreaming, supportsTools, healthy]
+      properties:
+        name:
+          type: string
+        providerType:
+          type: string
+        supportsStreaming:
+          type: boolean
+        supportsTools:
+          type: boolean
+        healthy:
+          type: boolean
+        rateLimitRpm:
+          type: integer
+          nullable: true
+        timeoutMsDefault:
+          type: integer
+          nullable: true
+    GetProvidersResponseDto:
+      type: object
+      additionalProperties: false
+      required: [providers]
+      properties:
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderDto'
+    CancelDispatchRequestDto:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+    AckResponseDto:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+        correlationId:
+          type: string
+          nullable: true
+    ApiErrorDto:
+      type: object
+      additionalProperties: false
+      required: [code, message, correlationId]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        correlationId:
+          type: string
+        details:
+          type: object
+          additionalProperties:
+            type: string
+    ErrorResponseDto:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          $ref: '#/components/schemas/ApiErrorDto'

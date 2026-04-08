@@ -620,9 +620,15 @@ document.addEventListener('keydown', (e) => {
             if (item) item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     }
-    // Escape closes builder
-    if (e.key === 'Escape' && builderVisible) {
-        toggleBuilder();
+    // Escape closes overlays
+    if (e.key === 'Escape') {
+        if (typeof apiHubVisible !== 'undefined' && apiHubVisible && typeof toggleApiHub === 'function') {
+            toggleApiHub();
+            return;
+        }
+        if (builderVisible) {
+            toggleBuilder();
+        }
     }
 });
 

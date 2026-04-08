@@ -335,6 +335,29 @@ body {
     color: #fff;
 }
 
+/* --- API Hub Toggle Button --- */
+.btn-api-hub-toggle {
+    padding: 6px 14px;
+    border: 1px solid #26c6da;
+    background: transparent;
+    color: #26c6da;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-api-hub-toggle:hover {
+    background: #26c6da;
+    color: #002226;
+}
+
+.btn-api-hub-toggle.active {
+    background: #26c6da;
+    color: #002226;
+}
+
 /* --- Copy Detail Button --- */
 .btn-copy-detail {
     padding: 4px 10px;
@@ -428,6 +451,225 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.api-hub-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 140;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.api-hub-content {
+    display: flex;
+    width: 90%;
+    max-width: 1280px;
+    height: 85vh;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.api-hub-config {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.api-hub-stream {
+    width: 460px;
+    padding: 20px;
+    background: var(--bg-primary);
+    border-left: 1px solid var(--border-color);
+    overflow-y: auto;
+}
+
+.api-hub-protocol-banner {
+    background: rgba(38, 198, 218, 0.12);
+    border: 1px solid rgba(38, 198, 218, 0.35);
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 14px;
+    color: #9feaf3;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.api-hub-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.api-hub-field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.api-hub-field.full {
+    flex: 1 1 100%;
+}
+
+.api-hub-field label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: #26c6da;
+    text-transform: uppercase;
+}
+
+.api-hub-field textarea,
+.api-hub-field input,
+.api-hub-field select {
+    padding: 8px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    outline: none;
+}
+
+.api-hub-field textarea {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    min-height: 120px;
+    resize: vertical;
+}
+
+.api-hub-field textarea:focus,
+.api-hub-field input:focus,
+.api-hub-field select:focus {
+    border-color: #26c6da;
+}
+
+.api-agent-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+.api-agent-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 12px;
+}
+
+.api-turn-order {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.api-turn-pill {
+    padding: 3px 8px;
+    border-radius: 12px;
+    border: 1px solid #26c6da;
+    font-size: 11px;
+    color: #9feaf3;
+}
+
+.api-hub-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-api-send {
+    background: #26c6da;
+    color: #032f35;
+}
+
+.btn-api-send:hover {
+    background: #14b6cb;
+}
+
+.btn-api-send:disabled {
+    background: #44767d;
+    color: #99afb2;
+    cursor: not-allowed;
+}
+
+.api-hub-status {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.api-hub-transcript {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.api-hub-message {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid #26c6da;
+    border-radius: 6px;
+    padding: 10px;
+}
+
+.api-hub-message-header {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+
+.api-hub-agent {
+    font-weight: 600;
+    color: #9feaf3;
+}
+
+.api-hub-round {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.api-hub-delivery {
+    font-size: 10px;
+    border-radius: 10px;
+    padding: 2px 8px;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.api-hub-delivery.success {
+    border-color: var(--accent-green);
+    color: #8fe29b;
+}
+
+.api-hub-delivery.error {
+    border-color: var(--accent-red);
+    color: #ff9d9d;
+}
+
+.api-hub-body {
+    white-space: pre-wrap;
+    line-height: 1.4;
+    font-size: 12px;
 }
 
 .builder-content {

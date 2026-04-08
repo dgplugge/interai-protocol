@@ -22,6 +22,10 @@ Every AICP message has four segments:
 ### Quick Links (Forge onboarding)
 - Cheat sheet: `notes/forge-aicp-cheatsheet.md`
 - Sample messages (good patterns: MSG-0006…MSG-0010): `samples/messages/`
+- API Hub integration guide: `protocol-spec/agent-api-hub.md`
+- VB.NET-first API contract + DTO schema: `protocol-spec/agent-hub-vbnet-api-contract.md`
+- OpenAPI 3.1 contract: `protocol-spec/agent-hub-openapi-3.1.yaml`
+- VB.NET DTO stubs: `protocol-spec/agent-hub-dtos.vb`
 
 ### Example Message
 
@@ -52,11 +56,23 @@ The `viewer/` folder contains a lightweight browser-based viewer for AICP messag
 
 ```bash
 # Start the relay server (serves viewer + enables message saving)
-python viewer/server.py
+python3 viewer/server.py
 # Open http://localhost:8080 in your browser
 ```
 
 Or simply open `viewer/index.html` directly in a browser (messages must be embedded for file:// mode; relay disabled).
+
+### API Hub (Round-table over HTTPS)
+
+The viewer now includes an **API Hub** dialog for orchestrated multi-agent discussions:
+
+- Select speaking participants (e.g., Pharos, Lodestar, Forge, SpinDrift)
+- Choose speaking protocol (round-robin, priority-first, alphabetical)
+- Send a single orchestrator prompt
+- Receive replies per turn in one shared transcript
+
+Configure real HTTPS endpoints in `viewer/agent-api-config.json`.
+If endpoints are disabled or unset, the hub runs in deterministic mock mode.
 
 ## Repository Structure
 
@@ -90,4 +106,5 @@ TBD
 
 ## Status
 
-MVP Slice 3 complete — Journal viewer, Message Builder, Assisted Relay, Agent Registry. Slice 4 (Agent Onboarding) in design.
+MVP Slice 3 complete — Journal viewer, Message Builder, Assisted Relay, Agent Registry.  
+API Hub round-table relay scaffolding added (HTTPS + mock fallback).

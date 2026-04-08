@@ -1,0 +1,52 @@
+{
+  "roundtable": {
+    "timeout_ms": 12000,
+    "allow_insecure_http": false
+  },
+  "agents": {
+    "Pharos": {
+      "platform": "Claude (Anthropic)",
+      "enabled": false,
+      "endpoint": "",
+      "method": "POST",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${ENV:PHAROS_API_TOKEN}"
+      },
+      "mock_reply": "Pharos mock reply: endpoint disabled or not configured."
+    },
+    "Lodestar": {
+      "platform": "ChatGPT (OpenAI)",
+      "enabled": false,
+      "endpoint": "",
+      "method": "POST",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${ENV:LODESTAR_API_TOKEN}"
+      },
+      "mock_reply": "Lodestar mock reply: endpoint disabled or not configured."
+    },
+    "Forge": {
+      "platform": "Codex (OpenAI)",
+      "enabled": false,
+      "endpoint": "",
+      "method": "POST",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${ENV:FORGE_API_TOKEN}"
+      },
+      "mock_reply": "Forge mock reply: endpoint disabled or not configured."
+    },
+    "SpinDrift": {
+      "platform": "Cursor",
+      "enabled": false,
+      "endpoint": "",
+      "method": "POST",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer ${ENV:SPINDRIFT_API_TOKEN}"
+      },
+      "mock_reply": "SpinDrift mock reply: endpoint disabled or not configured."
+    }
+  }
+}
