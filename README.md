@@ -23,6 +23,7 @@ Every AICP message has four segments:
 - Cheat sheet: `notes/forge-aicp-cheatsheet.md`
 - Sample messages (good patterns: MSG-0006…MSG-0010): `samples/messages/`
 - API Hub integration guide: `protocol-spec/agent-api-hub.md`
+- VB.NET-first API contract + DTO schema: `protocol-spec/agent-hub-vbnet-api-contract.md`
 
 ### Example Message
 
