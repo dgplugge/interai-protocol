@@ -850,6 +850,19 @@
       "file": "messages/2026-04-07-MSG-0070-response-forge.md",
       "ref": "MSG-0069",
       "seq": 105
+    },
+    {
+      "id": "MSG-0084",
+      "type": "REQUEST",
+      "from": "Forge",
+      "to": [
+        "Pharos"
+      ],
+      "time": "2026-04-07T18:20:00-04:00",
+      "task": "Add SpinDrift prompt flow and controls to VB.NET Agent Hub form",
+      "file": "messages/2026-04-07-MSG-0084-request-forge.md",
+      "ref": "MSG-0082",
+      "seq": 115
     }
   ],
   "protocol_amendments": [
