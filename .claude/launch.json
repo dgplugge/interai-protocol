@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["viewer/server.py"],
       "port": 8080
+    },
+    {
+      "name": "journal-site",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "3001", "--directory", "H:/Code/aicp-journals"],
+      "port": 3001
     }
   ]
 }
