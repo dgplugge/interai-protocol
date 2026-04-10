@@ -180,14 +180,19 @@ def sync_to_deploy(project: str):
 def root():
     return {
         "service": "AICP Journal API",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "phase": 2,
+        "slice": 2,
         "endpoints": [
-            "GET  /threads",
-            "GET  /threads/{project}",
-            "GET  /threads/{project}/transcript",
-            "POST /threads/{project}/messages",
-            "GET  /providers",
+            "GET    /threads",
+            "POST   /threads",
+            "GET    /threads/{project}",
+            "GET    /threads/{project}/transcript",
+            "GET    /threads/{project}/stats",
+            "POST   /threads/{project}/messages",
+            "DELETE /threads/{project}",
+            "GET    /providers",
+            "GET    /providers/{name}/status",
         ]
     }
 
@@ -357,6 +362,96 @@ def create_message(project: str, msg: MessageCreate):
         "status": "created",
         "message": index_entry,
         "sync": sync_status,
+    }
+
+
+@app.post("/threads")
+def create_thread(body: ThreadCreate):
+    """Create a new project thread with journal directory and index."""
+    key = body.project
+    if key in PROJECTS:
+        raise HTTPException(409, f"Project '{key}' already exists")
+
+    # Create directory structure
+    project_dir = JOURNALS_ROOT / key
+    project_dir.mkdir(parents=True, exist_ok=True)
+    (project_dir / "messages").mkdir(exist_ok=True)
+
+    # Create journal index
+    label = key.replace("-", " ").replace("_", " ").title()
+    index_data = {
+        "protocol": "AICP/1.0",
+        "project": key,
+        "participants": body.participants or ["Don"],
+        "messages": [],
+    }
+    (project_dir / "journal-index.json").write_text(
+        json.dumps(index_data, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+    # Register in runtime config
+    PROJECTS[key] = {"label": label}
+
+    # Sync to deploy repo
+    sync_status = sync_to_deploy(key)
+
+    return {
+        "status": "created",
+        "project": key,
+        "label": label,
+        "participants": index_data["participants"],
+        "sync": sync_status,
+    }
+
+
+@app.delete("/threads/{project}")
+def archive_thread(project: str):
+    """Archive a project thread by marking it inactive. Does not delete data."""
+    data = load_index(project)
+    data["archived"] = True
+    data["archived_at"] = datetime.now(timezone.utc).astimezone().isoformat()
+    save_index(project, data)
+
+    # Sync archive status
+    sync_status = sync_to_deploy(project)
+
+    return {
+        "status": "archived",
+        "project": project,
+        "message_count": len(data.get("messages", [])),
+        "sync": sync_status,
+    }
+
+
+@app.get("/threads/{project}/stats")
+def thread_stats(project: str):
+    """Get statistics for a project thread."""
+    data = load_index(project)
+    messages = data.get("messages", [])
+
+    # Count by type
+    type_counts = {}
+    sender_counts = {}
+    for m in messages:
+        t = m.get("type", "UNKNOWN").upper()
+        type_counts[t] = type_counts.get(t, 0) + 1
+        s = m.get("from", "Unknown")
+        sender_counts[s] = sender_counts.get(s, 0) + 1
+
+    # Date range
+    times = [m.get("time", "") for m in messages if m.get("time")]
+    first_msg = times[0] if times else None
+    last_msg = times[-1] if times else None
+
+    return {
+        "project": project,
+        "total_messages": len(messages),
+        "participants": data.get("participants", []),
+        "archived": data.get("archived", False),
+        "by_type": type_counts,
+        "by_sender": sender_counts,
+        "first_message": first_msg,
+        "last_message": last_msg,
     }
 
 
