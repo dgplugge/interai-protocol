@@ -8,6 +8,7 @@ import json
 import os
 import subprocess
 import shutil
+import sys
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
@@ -16,6 +17,12 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+# Add src to path for middleware imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+from middleware.rate_limiter import ProviderRateLimiter
+from middleware.retry_handler import RetryConfig, PROVIDER_RETRY_CONFIGS, RETRYABLE_STATUS_CODES
+from middleware.token_estimator import estimate_tokens, estimate_dispatch_tokens, suggest_history_trim
 
 # --- Configuration ---
 
@@ -43,7 +50,7 @@ PROVIDERS = [
 app = FastAPI(
     title="AICP Journal API",
     description="Phase 2 — Dynamic read/write API for inter-agent communication journals",
-    version="2.0.0",
+    version="2.3.0",
 )
 
 app.add_middleware(
@@ -52,6 +59,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- Rate Limiter (shared instance) ---
+rate_limiter = ProviderRateLimiter(default_delay=3.0)
 
 
 # --- Models ---
@@ -203,9 +213,9 @@ def sync_to_deploy(project: str):
 def root():
     return {
         "service": "AICP Journal API",
-        "version": "2.2.0",
+        "version": "2.3.0",
         "phase": 2,
-        "slice": 3,
+        "slices_complete": "1-5",
         "endpoints": [
             "GET    /threads",
             "POST   /threads",
@@ -217,6 +227,9 @@ def root():
             "DELETE /threads/{project}",
             "GET    /providers",
             "GET    /providers/{name}/status",
+            "GET    /health",
+            "GET    /rate-limits",
+            "POST   /estimate-tokens",
         ]
     }
 
@@ -599,12 +612,93 @@ def list_providers():
 
 @app.get("/providers/{name}/status")
 def provider_status(name: str):
-    """Health check placeholder for a specific agent."""
+    """Health check for a specific agent including rate limit stats."""
     provider = next((p for p in PROVIDERS if p["name"].lower() == name.lower()), None)
     if not provider:
         raise HTTPException(404, f"Provider '{name}' not found")
+
+    # Get rate limiter stats for this provider's platform
+    provider_key = provider["provider"].lower()
+    limiter_stats = rate_limiter.get_stats(provider_key)
+
+    # Get retry config
+    retry_config = PROVIDER_RETRY_CONFIGS.get(provider_key, RetryConfig())
+
     return {
         **provider,
         "status": "configured",
-        "note": "Live health checks require API key validation (not yet implemented)",
+        "rate_limiter": limiter_stats,
+        "retry_config": {
+            "max_retries": retry_config.max_retries,
+            "base_delay": retry_config.base_delay,
+            "max_delay": retry_config.max_delay,
+            "backoff_factor": retry_config.backoff_factor,
+        },
+    }
+
+
+# --- Middleware Endpoints ---
+
+@app.get("/health")
+def health_check():
+    """Overall system health check."""
+    return {
+        "status": "healthy",
+        "version": "2.3.0",
+        "phase": 2,
+        "slices_complete": "1-5",
+        "rate_limiter": rate_limiter.get_stats(),
+        "providers_configured": len(PROVIDERS),
+        "projects_active": len([
+            k for k in PROJECTS
+            if (JOURNALS_ROOT / k).exists()
+        ]),
+    }
+
+
+@app.get("/rate-limits")
+def get_rate_limits():
+    """View current rate limiting stats and configuration."""
+    return {
+        "limiter_stats": rate_limiter.get_stats(),
+        "provider_delays": rate_limiter.provider_delays,
+        "retry_configs": {
+            name: {
+                "max_retries": cfg.max_retries,
+                "base_delay": cfg.base_delay,
+                "max_delay": cfg.max_delay,
+                "backoff_factor": cfg.backoff_factor,
+                "retryable_codes": list(RETRYABLE_STATUS_CODES),
+            }
+            for name, cfg in PROVIDER_RETRY_CONFIGS.items()
+        },
+    }
+
+
+class TokenEstimateRequest(BaseModel):
+    system_prompt: str = ""
+    conversation_history: list[str] = []
+    current_prompt: str = ""
+    provider: str = ""
+
+
+@app.post("/estimate-tokens")
+def estimate_tokens_endpoint(req: TokenEstimateRequest):
+    """Estimate token usage for a planned dispatch."""
+    estimate = estimate_dispatch_tokens(
+        system_prompt=req.system_prompt,
+        conversation_history=req.conversation_history,
+        current_prompt=req.current_prompt,
+        provider=req.provider or None,
+    )
+
+    # Also provide trim suggestions if history is large
+    trim = suggest_history_trim(
+        conversation_history=req.conversation_history,
+        provider=req.provider or None,
+    )
+
+    return {
+        "estimate": estimate,
+        "trim_suggestion": trim,
     }
