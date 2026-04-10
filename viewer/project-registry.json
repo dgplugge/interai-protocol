@@ -3,6 +3,7 @@
     {
       "projectId": "InterAI-Protocol",
       "projectName": "Inter-AI Protocol",
+      "messagePrefix": "MSG-",
       "domain": "Multi-Agent Systems",
       "description": "Core AICP protocol development and multi-agent orchestration",
       "defaultAgents": [
@@ -20,6 +21,7 @@
     {
       "projectId": "OperatorHub",
       "projectName": "Operator Hub",
+      "messagePrefix": "OH-MSG-",
       "domain": "Flow Cytometry Lab Operations",
       "description": "Lab operations dashboard and SOP management",
       "defaultAgents": [
@@ -36,6 +38,7 @@
     {
       "projectId": "PortfolioAnalysis",
       "projectName": "Portfolio Analysis",
+      "messagePrefix": "PA-MSG-",
       "domain": "Financial Analysis",
       "description": "Investment portfolio analysis tools",
       "defaultAgents": [
@@ -50,6 +53,7 @@
     {
       "projectId": "StudyGuide",
       "projectName": "Study Guide",
+      "messagePrefix": "SG-MSG-",
       "domain": "AI-Assisted Learning",
       "description": "AI-generated study materials with multi-agent validation",
       "defaultAgents": [
