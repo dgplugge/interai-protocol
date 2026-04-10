@@ -9,6 +9,7 @@ import os
 import subprocess
 import shutil
 from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
 from typing import Optional
 
@@ -70,6 +71,28 @@ class MessageCreate(BaseModel):
 class ThreadCreate(BaseModel):
     project: str                       # project key from PROJECTS
     participants: list[str] = []
+
+
+class TurnMode(str, Enum):
+    PARALLEL = "parallel"          # All agents respond simultaneously
+    SEQUENTIAL = "sequential"      # Agents respond in order, no cross-visibility
+    ROUND_ROBIN = "round-robin"    # Each agent sees prior responses before replying
+
+
+class DispatchRequest(BaseModel):
+    prompt: str                        # The message/question to dispatch
+    task: str                          # $TASK description
+    turn_mode: TurnMode = TurnMode.ROUND_ROBIN
+    agents: list[str] = []             # Agent names to include (empty = all)
+    ref: Optional[str] = None         # $REF — parent message ID
+
+
+class DispatchResult(BaseModel):
+    dispatch_id: str
+    turn_mode: str
+    agents_dispatched: list[str]
+    prompt_message_id: str
+    status: str
 
 
 # --- Helpers ---
@@ -180,9 +203,9 @@ def sync_to_deploy(project: str):
 def root():
     return {
         "service": "AICP Journal API",
-        "version": "2.1.0",
+        "version": "2.2.0",
         "phase": 2,
-        "slice": 2,
+        "slice": 3,
         "endpoints": [
             "GET    /threads",
             "POST   /threads",
@@ -190,6 +213,7 @@ def root():
             "GET    /threads/{project}/transcript",
             "GET    /threads/{project}/stats",
             "POST   /threads/{project}/messages",
+            "POST   /threads/{project}/dispatch",
             "DELETE /threads/{project}",
             "GET    /providers",
             "GET    /providers/{name}/status",
@@ -452,6 +476,118 @@ def thread_stats(project: str):
         "by_sender": sender_counts,
         "first_message": first_msg,
         "last_message": last_msg,
+    }
+
+
+@app.post("/threads/{project}/dispatch")
+def dispatch_round(project: str, req: DispatchRequest):
+    """
+    Dispatch a prompt to agents in the specified turn mode.
+
+    This creates the orchestrator's prompt message, then sets up
+    the dispatch plan. Actual agent API calls happen via the Hub
+    (VB.NET app) — this endpoint records the dispatch intent and
+    turn configuration so the Hub knows how to execute.
+
+    Turn modes:
+    - PARALLEL:    All agents respond simultaneously, no cross-visibility
+    - SEQUENTIAL:  Agents respond in $TO order, no cross-visibility
+    - ROUND_ROBIN: Each agent sees prior agents' responses (default)
+    """
+    data = load_index(project)
+
+    # Determine which agents to dispatch to
+    if req.agents:
+        agent_names = req.agents
+    else:
+        agent_names = [p["name"] for p in PROVIDERS if p["role"] != "Pending Setup"]
+
+    # Create the orchestrator's prompt message
+    msg_id = next_msg_id(data, project)
+    seq = next_seq(data)
+    now = datetime.now(timezone.utc).astimezone()
+    timestamp = now.strftime("%Y-%m-%dT%H:%M:%S%z")
+    timestamp = timestamp[:-2] + ":" + timestamp[-2:]
+    date_str = now.strftime("%Y-%m-%d")
+
+    filename = f"{date_str}-{msg_id}-dispatch-don.md"
+    filepath = f"messages/{filename}"
+
+    # Build dispatch payload
+    dispatch_id = f"DISPATCH-{msg_id}"
+    to_str = ", ".join(agent_names)
+    lines = [
+        "$PROTO: AICP/1.0",
+        "$TYPE: REQUEST",
+        f"$ID: {msg_id}",
+    ]
+    if req.ref:
+        lines.append(f"$REF: {req.ref}")
+    lines += [
+        f"$SEQ: {seq}",
+        "$FROM: Don",
+        f"$TO: {to_str}",
+        f"$TIME: {timestamp}",
+        f"$TASK: {req.task}",
+        "$STATUS: IN_PROGRESS",
+        "$ROLE: Orchestrator",
+        f"$INTENT: Dispatch ({req.turn_mode.value}) to {len(agent_names)} agents",
+        f"PROJECT: {project}",
+        f"TURN_MODE: {req.turn_mode.value}",
+        f"DISPATCH_ID: {dispatch_id}",
+        "",
+        "---PAYLOAD---",
+        "",
+        req.prompt,
+        "",
+        f"[Dispatch Mode: {req.turn_mode.value}]",
+        f"[Agents: {to_str}]",
+    ]
+
+    if req.turn_mode == TurnMode.ROUND_ROBIN:
+        lines.append("[Each agent will see prior responses before replying]")
+    elif req.turn_mode == TurnMode.SEQUENTIAL:
+        lines.append("[Agents respond in order listed, no cross-visibility]")
+    else:
+        lines.append("[All agents respond simultaneously]")
+
+    lines += ["---END---"]
+    content = "\n".join(lines) + "\n"
+
+    # Write message file
+    msg_dir = get_journal_dir(project) / "messages"
+    msg_dir.mkdir(exist_ok=True)
+    (msg_dir / filename).write_text(content, encoding="utf-8")
+
+    # Update index
+    index_entry = {
+        "id": msg_id,
+        "type": "REQUEST",
+        "from": "Don",
+        "to": agent_names,
+        "time": timestamp,
+        "task": req.task,
+        "file": filepath,
+        "ref": req.ref or "NONE",
+        "seq": seq,
+        "dispatch_id": dispatch_id,
+        "turn_mode": req.turn_mode.value,
+    }
+    messages = data.get("messages", [])
+    messages.append(index_entry)
+    data["messages"] = messages
+    save_index(project, data)
+
+    # Sync
+    sync_status = sync_to_deploy(project)
+
+    return {
+        "status": "dispatched",
+        "dispatch_id": dispatch_id,
+        "turn_mode": req.turn_mode.value,
+        "agents": agent_names,
+        "prompt_message_id": msg_id,
+        "sync": sync_status,
     }
 
 
