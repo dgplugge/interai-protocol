@@ -24,6 +24,8 @@ let showRaw = false;
 let activeProject = 'all';  // 'all' or a project ID
 let projectList = [];        // Array of {id, name, color, messageCount}
 let searchQuery = '';        // Current search filter text
+let activeAgentFilter = 'all';  // Agent dropdown filter
+let activeTaskFilter = 'all';   // Task/topic dropdown filter
 let autoRefreshTimer = null; // Polling interval handle
 const AUTO_REFRESH_INTERVAL = 30000; // 30 seconds
 
@@ -66,6 +68,9 @@ async function initViewer() {
         }
     });
 
+    // Populate filter dropdowns from loaded messages
+    populateFilterDropdowns();
+
     renderMessageList();
 
     // Select first message
@@ -101,6 +106,17 @@ function sortMessages() {
 function getFilteredMessages() {
     let msgs = activeProject === 'all' ? allMessages : allMessages.filter(m => m._projectId === activeProject);
 
+    // Agent filter (by sender)
+    if (activeAgentFilter !== 'all') {
+        msgs = msgs.filter(m => m.envelope.from === activeAgentFilter);
+    }
+
+    // Task/topic filter
+    if (activeTaskFilter !== 'all') {
+        msgs = msgs.filter(m => m.meta.task === activeTaskFilter);
+    }
+
+    // Text search (across all fields)
     if (searchQuery) {
         const q = searchQuery.toLowerCase();
         msgs = msgs.filter(m => {
@@ -161,7 +177,10 @@ function onProjectChange() {
     if (!sel) return;
 
     activeProject = sel.value;
+    activeAgentFilter = 'all';
+    activeTaskFilter = 'all';
     clearSearch();
+    populateFilterDropdowns();
     renderMessageList();
 
     // Select newest message in filtered list
@@ -180,6 +199,93 @@ function onProjectChange() {
 }
 
 /**
+ * Populates the Agent and Task filter dropdowns from loaded messages.
+ * Called after messages load and on project change.
+ */
+function populateFilterDropdowns() {
+    const agentSel = document.getElementById('agent-filter');
+    const taskSel = document.getElementById('task-filter');
+    if (!agentSel || !taskSel) return;
+
+    // Get messages for current project scope
+    const scopeMsgs = activeProject === 'all' ? allMessages : allMessages.filter(m => m._projectId === activeProject);
+
+    // --- Agent dropdown ---
+    const agentCounts = {};
+    scopeMsgs.forEach(m => {
+        const from = m.envelope.from;
+        if (from) agentCounts[from] = (agentCounts[from] || 0) + 1;
+    });
+    const agents = Object.keys(agentCounts).sort();
+
+    agentSel.innerHTML = '';
+    const allAgentOpt = document.createElement('option');
+    allAgentOpt.value = 'all';
+    allAgentOpt.textContent = `All Agents (${scopeMsgs.length})`;
+    agentSel.appendChild(allAgentOpt);
+
+    agents.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = `${name} (${agentCounts[name]})`;
+        agentSel.appendChild(opt);
+    });
+    agentSel.value = activeAgentFilter;
+
+    // --- Task dropdown ---
+    const taskCounts = {};
+    scopeMsgs.forEach(m => {
+        const task = m.meta.task;
+        if (task) taskCounts[task] = (taskCounts[task] || 0) + 1;
+    });
+    const tasks = Object.keys(taskCounts).sort();
+
+    taskSel.innerHTML = '';
+    const allTaskOpt = document.createElement('option');
+    allTaskOpt.value = 'all';
+    allTaskOpt.textContent = `All Tasks (${tasks.length})`;
+    taskSel.appendChild(allTaskOpt);
+
+    tasks.forEach(task => {
+        const opt = document.createElement('option');
+        opt.value = task;
+        // Truncate long task names for dropdown display
+        const label = task.length > 50 ? task.substring(0, 47) + '...' : task;
+        opt.textContent = `${label} (${taskCounts[task]})`;
+        opt.title = task;  // Full text on hover
+        taskSel.appendChild(opt);
+    });
+    taskSel.value = activeTaskFilter;
+}
+
+/**
+ * Handles agent or task filter dropdown changes.
+ */
+function onFilterChange() {
+    const agentSel = document.getElementById('agent-filter');
+    const taskSel = document.getElementById('task-filter');
+
+    activeAgentFilter = agentSel ? agentSel.value : 'all';
+    activeTaskFilter = taskSel ? taskSel.value : 'all';
+
+    renderMessageList();
+
+    // Select first message in filtered results
+    const filtered = getFilteredMessages();
+    if (filtered.length > 0) {
+        const first = filtered[filtered.length - 1];
+        const globalIdx = allMessages.indexOf(first);
+        selectMessage(globalIdx);
+    } else {
+        selectedIndex = -1;
+        const detailEl = document.getElementById('message-detail');
+        if (detailEl) detailEl.innerHTML = '<div class="empty-state">No messages match current filters</div>';
+    }
+
+    updateStatusPill();
+}
+
+/**
  * Updates the status pill text with message count and project info.
  */
 function updateStatusPill() {
@@ -190,8 +296,16 @@ function updateStatusPill() {
     const projectMsgs = activeProject === 'all' ? allMessages : allMessages.filter(m => m._projectId === activeProject);
     const projLabel = activeProject === 'all' ? 'all projects' : (projectList.find(p => p.id === activeProject) || {}).name || activeProject;
 
-    if (searchQuery) {
-        statusEl.textContent = `${filtered.length} of ${projectMsgs.length} messages (${projLabel}) matching "${searchQuery}"`;
+    const hasFilters = searchQuery || activeAgentFilter !== 'all' || activeTaskFilter !== 'all';
+    if (hasFilters) {
+        const parts = [];
+        if (activeAgentFilter !== 'all') parts.push(`agent: ${activeAgentFilter}`);
+        if (activeTaskFilter !== 'all') {
+            const taskLabel = activeTaskFilter.length > 30 ? activeTaskFilter.substring(0, 27) + '...' : activeTaskFilter;
+            parts.push(`task: ${taskLabel}`);
+        }
+        if (searchQuery) parts.push(`"${searchQuery}"`);
+        statusEl.textContent = `${filtered.length} of ${projectMsgs.length} messages (${projLabel}) matching ${parts.join(' + ')}`;
     } else {
         statusEl.textContent = `${filtered.length} messages (${projLabel})`;
     }

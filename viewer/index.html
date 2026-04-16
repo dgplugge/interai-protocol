@@ -36,6 +36,14 @@
                     <input type="text" id="search-input" placeholder="Search messages... (/ to focus)" oninput="onSearchInput()">
                     <button id="search-clear" class="search-clear" onclick="clearSearch()" style="display:none;" title="Clear search">&times;</button>
                 </div>
+                <div class="filter-bar">
+                    <select id="agent-filter" onchange="onFilterChange()" title="Filter by sender">
+                        <option value="all">All Agents</option>
+                    </select>
+                    <select id="task-filter" onchange="onFilterChange()" title="Filter by task/topic">
+                        <option value="all">All Tasks</option>
+                    </select>
+                </div>
                 <div id="message-list">
                     <div class="empty-state">Loading...</div>
                 </div>

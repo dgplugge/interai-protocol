@@ -1066,6 +1066,33 @@ body {
     color: var(--text-primary);
 }
 
+/* Filter bar (agent + task dropdowns) */
+.filter-bar {
+    display: flex;
+    gap: 6px;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.filter-bar select {
+    flex: 1;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    cursor: pointer;
+    min-width: 0;
+}
+
+.filter-bar select:focus {
+    border-color: var(--accent-blue);
+    outline: none;
+}
+
 /* Search match highlight */
 .message-item.search-hidden {
     display: none;
