@@ -90,6 +90,50 @@
         "mode": "file_and_webhook",
         "notes": "Local agent — file saved by server.py, n8n sends notification webhook"
       }
+    },
+    {
+      "id": "trident",
+      "name": "Trident",
+      "type": "ai",
+      "platform": "Gemini 2.5 Flash (Google)",
+      "roles": ["Research & Synthesis"],
+      "permissions": ["proposal"],
+      "capabilities": ["research", "synthesis", "analysis"],
+      "status": "active",
+      "onboarding": {
+        "state": "complete",
+        "assigned_role": "Research & Synthesis",
+        "invited_at": "2026-04-15T10:00:00-04:00",
+        "ack_message_id": null
+      },
+      "delivery": {
+        "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
+        "webhook": "PENDING_CONFIGURATION",
+        "mode": "file_and_webhook",
+        "notes": "Remote agent — file saved by server.py, n8n sends full message via webhook"
+      }
+    },
+    {
+      "id": "lumen",
+      "name": "Lumen",
+      "type": "ai",
+      "platform": "Devstral 2 (Mistral)",
+      "roles": ["Efficiency Specialist"],
+      "permissions": ["proposal"],
+      "capabilities": ["optimization", "efficiency", "analysis"],
+      "status": "active",
+      "onboarding": {
+        "state": "complete",
+        "assigned_role": "Efficiency Specialist",
+        "invited_at": "2026-04-15T10:00:00-04:00",
+        "ack_message_id": null
+      },
+      "delivery": {
+        "journalPath": "Agent-Journals/InterAI-Protocol/messages/",
+        "webhook": "PENDING_CONFIGURATION",
+        "mode": "file_and_webhook",
+        "notes": "Remote agent — file saved by server.py, n8n sends full message via webhook"
+      }
     }
   ],
   "schema_notes": {

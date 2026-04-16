@@ -1,0 +1,28 @@
+{
+  "agentId": "pharos",
+  "notifications": [
+    {
+      "event": "new_message",
+      "messageId": "MSG-TEST-002",
+      "from": "Don",
+      "type": "REQUEST",
+      "task": "Direct test",
+      "receivedAt": "2026-04-02T15:55:06.056408Z",
+      "read": true,
+      "eventType": "notify"
+    },
+    {
+      "event": "new_message",
+      "messageId": "MSG-TEST-005",
+      "from": "Don",
+      "type": "REQUEST",
+      "task": "IPv4 fix test",
+      "project": "InterAI-Protocol",
+      "journalFile": "2026-04-02-MSG-TEST-005-request-don.md",
+      "timestamp": "2026-04-02T16:43:25.009Z",
+      "receivedAt": "2026-04-02T12:43:25.014656-04:00",
+      "read": true,
+      "eventType": "notify"
+    }
+  ]
+}

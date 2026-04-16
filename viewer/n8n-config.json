@@ -1,5 +1,15 @@
 {
   "N8N_ENABLED": true,
   "N8N_WEBHOOK_URL": "http://localhost:5678/webhook/aicp-ingress",
-  "N8N_TIMEOUT_MS": 5000
+  "N8N_TIMEOUT_MS": 5000,
+  "agent_webhooks": {
+    "trident": {
+      "deliver": "PENDING_CONFIGURATION",
+      "notes": "Gemini 2.5 Flash — set webhook URL once Trident endpoint is provisioned"
+    },
+    "lumen": {
+      "deliver": "PENDING_CONFIGURATION",
+      "notes": "Devstral 2 — set webhook URL once Lumen endpoint is provisioned"
+    }
+  }
 }
