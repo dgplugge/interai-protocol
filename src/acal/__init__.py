@@ -22,12 +22,16 @@ from .converter import (
     PHRASES,
 )
 
+from .verifier import verify_roundtrip, VerificationResult
+
 __all__ = [
     "parse_acal",
     "acal_to_aicp",
     "aicp_to_acal",
     "parse_operations",
     "validate_roundtrip",
+    "verify_roundtrip",
+    "VerificationResult",
     "MSG_TYPES",
     "AGENTS",
     "STATUS",
