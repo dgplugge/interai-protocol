@@ -23,6 +23,9 @@ let selectedIndex = -1;
 let showRaw = false;
 let activeProject = 'all';  // 'all' or a project ID
 let projectList = [];        // Array of {id, name, color, messageCount}
+let searchQuery = '';        // Current search filter text
+let autoRefreshTimer = null; // Polling interval handle
+const AUTO_REFRESH_INTERVAL = 30000; // 30 seconds
 
 /**
  * Initializes the viewer — loads projects, messages, and renders the UI.
@@ -71,6 +74,12 @@ async function initViewer() {
     }
 
     updateStatusPill();
+
+    // Start auto-refresh polling
+    startAutoRefresh();
+
+    // Show keyboard shortcut hint briefly on first load
+    showShortcutHint();
 }
 
 /**
@@ -86,12 +95,27 @@ function sortMessages() {
 }
 
 /**
- * Returns the filtered message list based on activeProject.
+ * Returns the filtered message list based on activeProject and search query.
  * @returns {Object[]} Filtered messages
  */
 function getFilteredMessages() {
-    if (activeProject === 'all') return allMessages;
-    return allMessages.filter(m => m._projectId === activeProject);
+    let msgs = activeProject === 'all' ? allMessages : allMessages.filter(m => m._projectId === activeProject);
+
+    if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        msgs = msgs.filter(m => {
+            return (m.envelope.from && m.envelope.from.toLowerCase().includes(q)) ||
+                   (m.envelope.to && m.envelope.to.toLowerCase().includes(q)) ||
+                   (m.envelope.type && m.envelope.type.toLowerCase().includes(q)) ||
+                   (m.envelope.id && m.envelope.id.toLowerCase().includes(q)) ||
+                   (m.meta.task && m.meta.task.toLowerCase().includes(q)) ||
+                   (m.meta.status && m.meta.status.toLowerCase().includes(q)) ||
+                   (m.payload && m.payload.toLowerCase().includes(q)) ||
+                   (m._projectId && m._projectId.toLowerCase().includes(q));
+        });
+    }
+
+    return msgs;
 }
 
 /**
@@ -110,11 +134,18 @@ function populateProjectSelector() {
     allOpt.textContent = 'All Projects';
     sel.appendChild(allOpt);
 
-    // One option per project
+    // "All Projects" count
+    const totalCount = allMessages.length;
+    if (totalCount > 0) {
+        allOpt.textContent = `All Projects (${totalCount})`;
+    }
+
+    // One option per project with message count
     projectList.forEach(proj => {
         const opt = document.createElement('option');
         opt.value = proj.id;
-        opt.textContent = proj.name;
+        const count = allMessages.filter(m => m._projectId === proj.id).length;
+        opt.textContent = count > 0 ? `${proj.name} (${count})` : proj.name;
         opt.style.color = proj.color;
         sel.appendChild(opt);
     });
@@ -130,6 +161,7 @@ function onProjectChange() {
     if (!sel) return;
 
     activeProject = sel.value;
+    clearSearch();
     renderMessageList();
 
     // Select newest message in filtered list
@@ -155,12 +187,13 @@ function updateStatusPill() {
     if (!statusEl) return;
 
     const filtered = getFilteredMessages();
-    if (activeProject === 'all') {
-        statusEl.textContent = `${filtered.length} messages (all projects)`;
+    const projectMsgs = activeProject === 'all' ? allMessages : allMessages.filter(m => m._projectId === activeProject);
+    const projLabel = activeProject === 'all' ? 'all projects' : (projectList.find(p => p.id === activeProject) || {}).name || activeProject;
+
+    if (searchQuery) {
+        statusEl.textContent = `${filtered.length} of ${projectMsgs.length} messages (${projLabel}) matching "${searchQuery}"`;
     } else {
-        const proj = projectList.find(p => p.id === activeProject);
-        const name = proj ? proj.name : activeProject;
-        statusEl.textContent = `${filtered.length} messages (${name})`;
+        statusEl.textContent = `${filtered.length} messages (${projLabel})`;
     }
 }
 
@@ -506,6 +539,7 @@ async function refreshMessages() {
     if (freshMessages.length > 0) {
         allMessages = freshMessages;
         sortMessages();
+        populateProjectSelector();
         renderMessageList();
 
         // Select the newest message in the filtered view
@@ -519,6 +553,10 @@ async function refreshMessages() {
         }
 
         updateStatusPill();
+
+        // Hide the refresh badge after loading
+        const badge = document.getElementById('auto-refresh-badge');
+        if (badge) badge.style.display = 'none';
     }
 }
 
@@ -590,18 +628,150 @@ function ackMessage() {
     prefillAck(allMessages[selectedIndex]);
 }
 
+// === Search / Filter ===
+
+/**
+ * Handles search input changes. Filters the message list in real time.
+ */
+function onSearchInput() {
+    const input = document.getElementById('search-input');
+    const clearBtn = document.getElementById('search-clear');
+    if (!input) return;
+
+    searchQuery = input.value.trim();
+    if (clearBtn) clearBtn.style.display = searchQuery ? 'block' : 'none';
+
+    renderMessageList();
+    updateStatusPill();
+
+    // Auto-select first visible message if current selection is filtered out
+    const filtered = getFilteredMessages();
+    if (filtered.length > 0) {
+        const currentVisible = filtered.find(m => allMessages.indexOf(m) === selectedIndex);
+        if (!currentVisible) {
+            selectMessage(allMessages.indexOf(filtered[filtered.length - 1]));
+        }
+    }
+}
+
+/**
+ * Clears the search input and resets the filter.
+ */
+function clearSearch() {
+    const input = document.getElementById('search-input');
+    if (input) input.value = '';
+    searchQuery = '';
+    const clearBtn = document.getElementById('search-clear');
+    if (clearBtn) clearBtn.style.display = 'none';
+    renderMessageList();
+    updateStatusPill();
+}
+
+// === Auto-Refresh Polling ===
+
+/**
+ * Starts the auto-refresh polling timer.
+ * Checks for new messages every AUTO_REFRESH_INTERVAL ms.
+ */
+function startAutoRefresh() {
+    if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+    autoRefreshTimer = setInterval(checkForNewMessages, AUTO_REFRESH_INTERVAL);
+}
+
+/**
+ * Checks for new messages without disrupting the current view.
+ * Shows a badge if new messages are found.
+ */
+async function checkForNewMessages() {
+    try {
+        const freshMessages = await autoLoad(null, activeProject);
+        if (freshMessages.length > allMessages.length) {
+            const newCount = freshMessages.length - allMessages.length;
+            showRefreshBadge(newCount);
+        }
+    } catch (e) {
+        // Silent — don't disrupt the user on polling errors
+    }
+}
+
+/**
+ * Shows the auto-refresh badge with the count of new messages.
+ * @param {number} count - Number of new messages
+ */
+function showRefreshBadge(count) {
+    const badge = document.getElementById('auto-refresh-badge');
+    if (!badge) return;
+    badge.textContent = '+' + count;
+    badge.style.display = 'inline-block';
+    badge.title = count + ' new message(s) — click to refresh';
+    badge.onclick = function() {
+        badge.style.display = 'none';
+        refreshMessages();
+    };
+}
+
+// === Keyboard Shortcut Hint ===
+
+/**
+ * Shows a brief keyboard shortcut hint at the bottom of the screen.
+ * Disappears after 5 seconds.
+ */
+function showShortcutHint() {
+    let hint = document.getElementById('shortcut-hint');
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'shortcut-hint';
+        hint.className = 'shortcut-hint';
+        hint.innerHTML = '<kbd>j</kbd>/<kbd>k</kbd> navigate &nbsp; <kbd>/</kbd> search &nbsp; <kbd>r</kbd> raw toggle &nbsp; <kbd>Esc</kbd> close';
+        document.body.appendChild(hint);
+    }
+    requestAnimationFrame(function() {
+        hint.classList.add('show');
+    });
+    setTimeout(function() {
+        hint.classList.remove('show');
+    }, 5000);
+}
+
 // --- Keyboard navigation ---
 document.addEventListener('keydown', (e) => {
-    // Don't navigate when typing in builder form
+    // "/" focuses search bar from anywhere (even in inputs)
+    if (e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) searchInput.focus();
+        return;
+    }
+
+    // Escape: clear search if focused, close builder, or close agent panel
+    if (e.key === 'Escape') {
+        const searchInput = document.getElementById('search-input');
+        if (document.activeElement === searchInput) {
+            clearSearch();
+            searchInput.blur();
+            return;
+        }
+        if (typeof builderVisible !== 'undefined' && builderVisible) {
+            toggleBuilder();
+            return;
+        }
+        if (typeof agentPanelVisible !== 'undefined' && agentPanelVisible) {
+            toggleAgentPanel();
+            return;
+        }
+        return;
+    }
+
+    // Don't navigate when typing in inputs
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
         return;
     }
 
     const filtered = getFilteredMessages();
 
-    if (e.key === 'ArrowDown') {
+    // j/ArrowDown = next message (list is reversed, so "next" = previous in filtered array)
+    if (e.key === 'ArrowDown' || e.key === 'j') {
         e.preventDefault();
-        // Find next message in filtered list
         const currentFilterIdx = filtered.findIndex(m => allMessages.indexOf(m) === selectedIndex);
         if (currentFilterIdx < filtered.length - 1) {
             const nextGlobalIdx = allMessages.indexOf(filtered[currentFilterIdx + 1]);
@@ -610,7 +780,9 @@ document.addEventListener('keydown', (e) => {
             if (item) item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     }
-    if (e.key === 'ArrowUp') {
+
+    // k/ArrowUp = previous message
+    if (e.key === 'ArrowUp' || e.key === 'k') {
         e.preventDefault();
         const currentFilterIdx = filtered.findIndex(m => allMessages.indexOf(m) === selectedIndex);
         if (currentFilterIdx > 0) {
@@ -620,9 +792,15 @@ document.addEventListener('keydown', (e) => {
             if (item) item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     }
-    // Escape closes builder
-    if (e.key === 'Escape' && builderVisible) {
-        toggleBuilder();
+
+    // r = toggle raw view
+    if (e.key === 'r') {
+        toggleRawView();
+    }
+
+    // ? = show keyboard shortcut hint
+    if (e.key === '?') {
+        showShortcutHint();
     }
 });
 

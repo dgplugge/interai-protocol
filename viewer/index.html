@@ -28,7 +28,14 @@
         <div class="app-body">
             <!-- Left Panel: Message List -->
             <div class="list-panel">
-                <div class="list-header">Messages</div>
+                <div class="list-header">
+                    <span>Messages</span>
+                    <span id="auto-refresh-badge" class="refresh-badge" style="display:none;" title="New messages available">0</span>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="search-input" placeholder="Search messages... (/ to focus)" oninput="onSearchInput()">
+                    <button id="search-clear" class="search-clear" onclick="clearSearch()" style="display:none;" title="Clear search">&times;</button>
+                </div>
                 <div id="message-list">
                     <div class="empty-state">Loading...</div>
                 </div>
