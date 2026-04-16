@@ -25,6 +25,8 @@ from middleware.retry_handler import RetryConfig, PROVIDER_RETRY_CONFIGS, RETRYA
 from middleware.token_estimator import estimate_tokens, estimate_dispatch_tokens, suggest_history_trim
 from kernel.loader import KernelLoader
 from acal.verifier import verify_roundtrip
+from middleware.decision_validator import validate_decision, extract_decision_from_content, VALID_DECISIONS
+from middleware.thread_compactor import ThreadTracker
 
 # --- Configuration ---
 
@@ -68,6 +70,10 @@ rate_limiter = ProviderRateLimiter(default_delay=3.0)
 # --- Kernel Loader (shared instance) ---
 KERNELS_DIR = Path(__file__).parent.parent / "kernels"
 kernel_loader = KernelLoader(KERNELS_DIR)
+
+# --- Thread Compactor (shared instance) ---
+SUMMARIES_DIR = Path(__file__).parent.parent / "summaries"
+thread_tracker = ThreadTracker(summary_dir=SUMMARIES_DIR, threshold=10)
 
 
 # --- Models ---
@@ -238,6 +244,9 @@ def root():
             "POST   /estimate-tokens",
             "POST   /api/acal/verify",
             "GET    /kernels",
+            "POST   /api/validate-decision",
+            "GET    /threads/{project}/summary",
+            "POST   /threads/{project}/compact",
         ]
     }
 
@@ -370,6 +379,31 @@ def create_message(project: str, msg: MessageCreate):
         "---END---",
     ]
     content = "\n".join(lines) + "\n"
+
+    # --- Slice 8.6: $DECISION validation on RESPONSE messages ---
+    if msg.type.upper() == "RESPONSE":
+        decision = extract_decision_from_content(msg.payload)
+        validation_msg = {
+            "type": msg.type,
+            "id": msg_id,
+            "decision": decision or "",
+        }
+        error = validate_decision(validation_msg)
+        if error:
+            raise HTTPException(400, error.to_dict())
+
+    # --- Slice 8.5: Track message in thread compactor ---
+    thread_tracker.add_message(project, {
+        "id": msg_id,
+        "from": msg.from_agent,
+        "to": msg.to,
+        "task": msg.task,
+        "status": msg.status,
+        "time": timestamp,
+        "content": msg.payload[:500],
+        "decision": extract_decision_from_content(msg.payload) or "",
+        "seq": seq,
+    })
 
     # Write message file
     msg_dir = get_journal_dir(project) / "messages"
@@ -802,3 +836,88 @@ def acal_verify(req: AcalVerifyRequest):
     """
     result = verify_roundtrip(req.aicp_message)
     return result.to_dict()
+
+
+# --- Slice 8.6: Decision Validation Endpoint ---
+
+
+class DecisionValidateRequest(BaseModel):
+    type: str
+    id: str = ""
+    decision: str = ""
+
+
+@app.post("/api/validate-decision")
+def validate_decision_endpoint(req: DecisionValidateRequest):
+    """Validate a $DECISION header value.
+
+    Only enforces on RESPONSE messages. Returns validation result.
+    """
+    error = validate_decision(req.model_dump())
+    if error:
+        raise HTTPException(400, error.to_dict())
+    return {
+        "valid": True,
+        "type": req.type,
+        "decision": req.decision,
+        "allowed_values": sorted(VALID_DECISIONS),
+    }
+
+
+# --- Slice 8.5: Thread Compaction Endpoints ---
+
+
+@app.get("/threads/{project}/summary")
+def get_thread_summary(project: str):
+    """Get the compacted summary for a project thread, if available."""
+    summary = thread_tracker.load_summary(project)
+    if summary is None:
+        return {
+            "project": project,
+            "summary": None,
+            "message_count_since_compact": thread_tracker.get_count(project),
+            "threshold": thread_tracker.threshold,
+        }
+    return {
+        "project": project,
+        "summary": summary.to_dict(),
+        "message_count_since_compact": thread_tracker.get_count(project),
+        "threshold": thread_tracker.threshold,
+        "context_prompt": summary.to_prompt(),
+    }
+
+
+@app.post("/threads/{project}/compact")
+def compact_thread(project: str):
+    """Manually trigger thread compaction for a project.
+
+    Generates a summary from tracked messages and saves as sidecar JSON.
+    Typically called by the last agent in turn order after a round completes.
+    """
+    count = thread_tracker.get_count(project)
+    if count == 0:
+        raise HTTPException(400, f"No tracked messages for project '{project}'")
+
+    summary = thread_tracker.compact(project)
+
+    # Update kernel if one exists for this project
+    kernel_update = None
+    try:
+        kernel_name = project.lower().replace("-", "-").replace(" ", "-")
+        kernel_names = kernel_loader.list_kernels()
+        matching = [k for k in kernel_names if project.lower().replace("-", "") in k.replace("-", "")]
+        if matching:
+            kernel_update = {
+                "kernel": matching[0],
+                "note": "Kernel STATE should be updated with this summary",
+            }
+    except Exception:
+        pass
+
+    return {
+        "status": "compacted",
+        "project": project,
+        "summary": summary.to_dict(),
+        "messages_compacted": summary.message_count,
+        "kernel_update": kernel_update,
+    }
