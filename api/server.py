@@ -14,7 +14,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -23,6 +23,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from middleware.rate_limiter import ProviderRateLimiter
 from middleware.retry_handler import RetryConfig, PROVIDER_RETRY_CONFIGS, RETRYABLE_STATUS_CODES
 from middleware.token_estimator import estimate_tokens, estimate_dispatch_tokens, suggest_history_trim
+from kernel.loader import KernelLoader
+from acal.verifier import verify_roundtrip
 
 # --- Configuration ---
 
@@ -62,6 +64,10 @@ app.add_middleware(
 
 # --- Rate Limiter (shared instance) ---
 rate_limiter = ProviderRateLimiter(default_delay=3.0)
+
+# --- Kernel Loader (shared instance) ---
+KERNELS_DIR = Path(__file__).parent.parent / "kernels"
+kernel_loader = KernelLoader(KERNELS_DIR)
 
 
 # --- Models ---
@@ -230,6 +236,8 @@ def root():
             "GET    /health",
             "GET    /rate-limits",
             "POST   /estimate-tokens",
+            "POST   /api/acal/verify",
+            "GET    /kernels",
         ]
     }
 
@@ -493,7 +501,14 @@ def thread_stats(project: str):
 
 
 @app.post("/threads/{project}/dispatch")
-def dispatch_round(project: str, req: DispatchRequest):
+def dispatch_round(
+    project: str,
+    req: DispatchRequest,
+    kernel: Optional[str] = Query(
+        default=None,
+        description="Name of a context kernel to inject (e.g. 'acal-dev')",
+    ),
+):
     """
     Dispatch a prompt to agents in the specified turn mode.
 
@@ -502,12 +517,36 @@ def dispatch_round(project: str, req: DispatchRequest):
     (VB.NET app) — this endpoint records the dispatch intent and
     turn configuration so the Hub knows how to execute.
 
+    Optional query parameter ``kernel`` loads a context kernel from
+    the kernels/ directory and prepends it to the dispatch payload
+    as a system-prompt preamble.
+
     Turn modes:
     - PARALLEL:    All agents respond simultaneously, no cross-visibility
     - SEQUENTIAL:  Agents respond in $TO order, no cross-visibility
     - ROUND_ROBIN: Each agent sees prior agents' responses (default)
     """
     data = load_index(project)
+
+    # --- Kernel injection (optional) ---
+    kernel_info: dict | None = None
+    kernel_preamble = ""
+    if kernel:
+        try:
+            kernel_data = kernel_loader.load(kernel)
+            kernel_preamble = kernel_data.to_prompt()
+            budget = kernel_loader.check_budget(kernel_data)
+            kernel_info = {
+                "name": kernel_data.name,
+                "label": kernel_data.label,
+                "version": kernel_data.version,
+                "token_estimate": kernel_data.token_estimate,
+                "within_budget": budget["within_budget"],
+            }
+        except FileNotFoundError:
+            raise HTTPException(404, f"Kernel '{kernel}' not found")
+        except ValueError as exc:
+            raise HTTPException(422, f"Kernel '{kernel}' is malformed: {exc}")
 
     # Determine which agents to dispatch to
     if req.agents:
@@ -551,6 +590,20 @@ def dispatch_round(project: str, req: DispatchRequest):
         "",
         "---PAYLOAD---",
         "",
+    ]
+
+    # Prepend kernel content as system-prompt preamble if provided
+    if kernel_preamble:
+        lines += [
+            "---KERNEL_PREAMBLE---",
+            "",
+            kernel_preamble,
+            "",
+            "---END_KERNEL_PREAMBLE---",
+            "",
+        ]
+
+    lines += [
         req.prompt,
         "",
         f"[Dispatch Mode: {req.turn_mode.value}]",
@@ -594,7 +647,7 @@ def dispatch_round(project: str, req: DispatchRequest):
     # Sync
     sync_status = sync_to_deploy(project)
 
-    return {
+    result = {
         "status": "dispatched",
         "dispatch_id": dispatch_id,
         "turn_mode": req.turn_mode.value,
@@ -602,6 +655,9 @@ def dispatch_round(project: str, req: DispatchRequest):
         "prompt_message_id": msg_id,
         "sync": sync_status,
     }
+    if kernel_info:
+        result["kernel"] = kernel_info
+    return result
 
 
 @app.get("/providers")
@@ -702,3 +758,47 @@ def estimate_tokens_endpoint(req: TokenEstimateRequest):
         "estimate": estimate,
         "trim_suggestion": trim,
     }
+
+
+# --- Kernel Endpoints ---
+
+@app.get("/kernels")
+def list_kernels():
+    """List available context kernels."""
+    names = kernel_loader.list_kernels()
+    kernels = []
+    for name in names:
+        try:
+            k = kernel_loader.load(name)
+            budget = kernel_loader.check_budget(k)
+            kernels.append({
+                "name": k.name,
+                "label": k.label,
+                "version": k.version,
+                "updated": k.updated,
+                "task": k.task,
+                "token_estimate": k.token_estimate,
+                "within_budget": budget["within_budget"],
+            })
+        except (ValueError, FileNotFoundError):
+            kernels.append({"name": name, "error": "malformed or missing"})
+    return {"kernels": kernels}
+
+
+# --- ACAL Verification Endpoint ---
+
+
+class AcalVerifyRequest(BaseModel):
+    aicp_message: str  # Full AICP message text to verify
+
+
+@app.post("/api/acal/verify")
+def acal_verify(req: AcalVerifyRequest):
+    """Verify ACAL round-trip fidelity for an AICP message.
+
+    Compresses the message to ACAL, expands it back, and compares
+    all semantic fields. Returns pass/fail, compression ratio, and
+    any field-level mismatches.
+    """
+    result = verify_roundtrip(req.aicp_message)
+    return result.to_dict()
