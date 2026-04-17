@@ -441,6 +441,8 @@ def create_message(project: str, msg: MessageCreate):
         "status": "created",
         "message": index_entry,
         "sync": sync_status,
+        "messages_since_compact": thread_tracker.get_count(project),
+        "compact_due": thread_tracker.should_compact(project),
     }
 
 
@@ -678,6 +680,24 @@ def dispatch_round(
     data["messages"] = messages
     save_index(project, data)
 
+    # --- Slice 8.6: $DECISION validation (pass-through for REQUEST type) ---
+    error = validate_decision({"type": "REQUEST", "id": msg_id, "decision": ""})
+    if error:
+        raise HTTPException(400, error.to_dict())
+
+    # --- Slice 8.5: Track dispatch REQUEST in thread compactor ---
+    thread_tracker.add_message(project, {
+        "id": msg_id,
+        "from": "Don",
+        "to": agent_names,
+        "task": req.task,
+        "status": "IN_PROGRESS",
+        "time": timestamp,
+        "content": req.prompt[:500],
+        "decision": "",
+        "seq": seq,
+    })
+
     # Sync
     sync_status = sync_to_deploy(project)
 
@@ -688,6 +708,8 @@ def dispatch_round(
         "agents": agent_names,
         "prompt_message_id": msg_id,
         "sync": sync_status,
+        "messages_since_compact": thread_tracker.get_count(project),
+        "compact_due": thread_tracker.should_compact(project),
     }
     if kernel_info:
         result["kernel"] = kernel_info

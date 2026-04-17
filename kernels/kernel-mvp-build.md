@@ -1,5 +1,5 @@
 # CONTEXT KERNEL: MVP Build
-# Version: 1.1 | Updated: 2026-04-17 | Task: interai-protocol MVP convergence
+# Version: 1.2 | Updated: 2026-04-17 | Task: interai-protocol MVP convergence
 
 ---PROTO---
 
@@ -66,6 +66,8 @@ BUILT (in tree, tested, committed):
     Endpoints: /threads, /dispatch, /kernels, /health
     Dispatch supports PARALLEL | SEQUENTIAL | ROUND_ROBIN turn modes
     Optional ?kernel=<name> query injects a context kernel
+    decision_validator + thread_tracker invoked on both /messages and
+      /dispatch paths; responses carry messages_since_compact + compact_due
   src/acal/converter.py                  — ACAL ↔ AICP bidirectional
   src/acal/verifier.py                   — round-trip verification
   src/kernel/loader.py                   — kernel discovery + 8K budget
@@ -79,13 +81,14 @@ BUILT (in tree, tested, committed):
   kernels/kernel-acal-dev.md             — first live kernel
 
 NOT YET BUILT (candidates for next work):
-  Middleware wiring — decision_validator.py and thread_compactor.py exist
-    but are not wired into the dispatch request path. See api/server.py
-    dispatch_round(). Adding them is a small FastAPI middleware registration.
   Context Kernel update protocol — how Hub writes learnings back into
     STATE/MEMORY sections after a dispatch. Loader reads; nothing writes.
   CBOR compaction — thread_compactor.py currently emits JSON sidecars.
     CBOR optimization was explicitly deferred in Slice 8.5.
+  Auto-compact on threshold — compact_due is surfaced but /compact must
+    still be called explicitly. Consider auto-trigger in future slice.
+  End-to-end integration test — dispatch → validator → compactor → summary
+    covered per-module but no full-round pytest yet.
 
 EXTERNAL (Hub VB.NET app, not in this repo):
   Provider API calls (Anthropic/OpenAI/Google/Mistral SDKs)
@@ -110,6 +113,11 @@ EXTERNAL (Hub VB.NET app, not in this repo):
   (b) Agents propose features that already exist in the tree when
       recent commits are not surfaced. This kernel is the corrective.
 
+[2026-04-17] NEXT_STEPS #1 [P,F] DONE: decision_validator and
+  thread_tracker now invoked on /dispatch as well as /messages.
+  Both endpoints return messages_since_compact + compact_due so Hub
+  can trigger /compact when threshold reached. Tests: 175 passed.
+
 ---DICT---
 
 Task-specific tokens for MVP convergence:
@@ -128,7 +136,7 @@ Candidate next moves (choose ONE per round, do not fan out):
 1. [P,F] WIRE decision_validator + thread_compactor into api/server.py
    dispatch pipeline. Both modules exist; neither is currently invoked
    on live dispatches. Smallest high-value delta.
-   Status: PROPOSED
+   Status: DONE (2026-04-17, MSG-0146) — see MEMORY.
 
 2. [L]  Design kernel update protocol — how does Hub write agent
    decisions back into STATE/MEMORY sections of the active kernel?
