@@ -1,5 +1,5 @@
 # CONTEXT KERNEL: MVP Build
-# Version: 1.0 | Updated: 2026-04-17 | Task: interai-protocol MVP convergence
+# Version: 1.1 | Updated: 2026-04-17 | Task: interai-protocol MVP convergence
 
 ---PROTO---
 
@@ -27,6 +27,20 @@ invalid → rejected with DECISION_REQUIRED or INVALID_DECISION_STATE.
 
 Open tasks use: $STATUS: OPEN  +  $TASK: <description>
   (Not $OPEN: — that form will not be parsed by the compactor.)
+
+NO-FABRICATION RULE (mandatory):
+  If any input referenced in the prompt is missing from your context
+  (e.g. "using the mvp-build kernel" but the kernel text is not present),
+  you MUST respond with $DECISION: CLARIFY and name the missing input.
+  You MUST NOT:
+    - Infer, guess, or reconstruct kernel contents from memory
+    - Propose candidates that are not visibly present in the prompt
+    - Issue $DECISION: EXECUTE against inferred or fabricated options
+    - Present hallucinated content inside a summary table or consensus frame
+  Fabrication with a confident EXECUTE is the worst failure mode in
+  this system — it manufactures false consensus. When blocked by
+  missing input, one line of CLARIFY is the correct, complete response.
+  Do not pad CLARIFY responses; ~30 tokens is sufficient.
 
 ---ROSTER---
 
