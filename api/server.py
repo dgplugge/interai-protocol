@@ -71,6 +71,9 @@ rate_limiter = ProviderRateLimiter(default_delay=3.0)
 KERNELS_DIR = Path(__file__).parent.parent / "kernels"
 kernel_loader = KernelLoader(KERNELS_DIR)
 
+# --- Agent Cards directory ---
+AGENTS_DIR = Path(__file__).parent.parent / "agents"
+
 # --- Thread Compactor (shared instance) ---
 SUMMARIES_DIR = Path(__file__).parent.parent / "summaries"
 thread_tracker = ThreadTracker(summary_dir=SUMMARIES_DIR, threshold=10)
@@ -244,6 +247,8 @@ def root():
             "POST   /estimate-tokens",
             "POST   /api/acal/verify",
             "GET    /kernels",
+            "GET    /agents",
+            "GET    /agents/{name}/card",
             "POST   /api/validate-decision",
             "GET    /threads/{project}/summary",
             "POST   /threads/{project}/compact",
@@ -839,6 +844,35 @@ def list_kernels():
         except (ValueError, FileNotFoundError):
             kernels.append({"name": name, "error": "malformed or missing"})
     return {"kernels": kernels}
+
+
+# --- Agent Profile Card Endpoints ---
+
+
+@app.get("/agents")
+def list_agent_cards():
+    """List agents that have a profile card in the agents/ directory."""
+    if not AGENTS_DIR.exists():
+        return {"agents": []}
+    names = sorted(p.stem for p in AGENTS_DIR.glob("*.md"))
+    return {"agents": names, "count": len(names)}
+
+
+@app.get("/agents/{name}/card")
+def get_agent_card(name: str):
+    """Return the profile card for a given agent.
+
+    Card content is the raw markdown from agents/<name>.md.
+    Lookup is case-insensitive (Lumen, LUMEN, lumen all resolve to lumen.md).
+    Returns 404 if no card exists for that agent.
+    """
+    card_path = AGENTS_DIR / f"{name.lower()}.md"
+    if not card_path.exists():
+        raise HTTPException(404, f"No profile card for agent '{name}'")
+    return {
+        "name": name.lower(),
+        "card": card_path.read_text(encoding="utf-8"),
+    }
 
 
 # --- ACAL Verification Endpoint ---
