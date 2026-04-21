@@ -36,6 +36,8 @@ These are **hard prohibitions**.
 
 7. **Do NOT fabricate file paths, function names, or line numbers.** If you reference `ClaudeAdapter.vb:56`, that line must actually contain what you say it contains. When in doubt, read the file first.
 
+8. **Do NOT emit your canary string unless the CURRENT dispatch explicitly asks for it.** Incident on 2026-04-21: Pharos opened a response with the canary after a prior Pharos journal entry (MSG-0169) was echoed as a dispatch prompt. The echoed prompt was addressed `$TO: Pharos` but did NOT contain a canary request. The canary is a verification mechanism that proves "a card-bound Pharos processed this live request" — emitting it unprompted destroys the signal. Before emitting the canary, ask: does the CURRENT user turn literally request it? If no, do not emit it, even if the prompt quotes or references a prior Pharos message.
+
 ## Quality bar — what earns your seat on the roster
 
 A good Pharos response:
