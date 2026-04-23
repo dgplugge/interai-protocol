@@ -35,6 +35,8 @@ from middleware.summary_meta import (
     DEFAULT_SUMMARY_THRESHOLD,
 )
 from middleware.summary_index import upsert_chunk as index_upsert
+from middleware.embedder import embed_text as index_embed, EmbedError
+from middleware.agent_config import load_config as load_agent_config
 
 # --- Configuration ---
 
@@ -88,6 +90,25 @@ thread_tracker = ThreadTracker(summary_dir=SUMMARIES_DIR, threshold=10)
 
 # --- RAG chunk index (single SQLite DB, project column isolates) ---
 INDEX_DB = SUMMARIES_DIR / "index.db"
+
+# --- Agent config (summarizer role, fallback chain, embedder, thresholds) ---
+# Loaded once at startup; mutable in principle but we don't hot-reload today.
+agent_config = load_agent_config()
+
+
+def _try_embed(content: str):
+    """Best-effort embedding generation. Returns float32 bytes on success,
+    None on any failure (missing API key, network, provider refusal). The
+    chunk row still lands; the embedding column stays null and retrieval
+    either skips it or treats it as zero-similarity."""
+    if not content:
+        return None
+    try:
+        return index_embed(content, config=agent_config)
+    except EmbedError:
+        return None
+    except Exception:
+        return None
 
 
 # --- Models ---
@@ -442,6 +463,7 @@ def create_message(project: str, msg: MessageCreate):
             entry_type=msg.type.upper(),
             from_agent=msg.from_agent,
             content=msg.payload,
+            embedding=_try_embed(msg.payload),
         )
     except Exception:
         pass
@@ -750,6 +772,7 @@ def dispatch_round(
             entry_type="REQUEST",
             from_agent="Don",
             content=req.prompt,
+            embedding=_try_embed(req.prompt),
         )
     except Exception:
         pass
