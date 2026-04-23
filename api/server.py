@@ -27,6 +27,7 @@ from kernel.loader import KernelLoader
 from acal.verifier import verify_roundtrip
 from middleware.decision_validator import validate_decision, extract_decision_from_content, VALID_DECISIONS
 from middleware.thread_compactor import ThreadTracker
+from middleware.summary_meta import record_journal_entry, entries_since_last_summary
 
 # --- Configuration ---
 
@@ -415,6 +416,13 @@ def create_message(project: str, msg: MessageCreate):
     msg_dir.mkdir(exist_ok=True)
     (msg_dir / filename).write_text(content, encoding="utf-8")
 
+    # Summarizer-Role post-commit hook (Q2). Metadata failures must not break
+    # the journal write — the journal is the source of truth.
+    try:
+        record_journal_entry(SUMMARIES_DIR, project)
+    except Exception:
+        pass
+
     # Update index
     index_entry = {
         "id": msg_id,
@@ -702,6 +710,13 @@ def dispatch_round(
         "decision": "",
         "seq": seq,
     })
+
+    # Summarizer-Role post-commit hook (Q2). Metadata failures must not break
+    # the journal write — the journal is the source of truth.
+    try:
+        record_journal_entry(SUMMARIES_DIR, project)
+    except Exception:
+        pass
 
     # Sync
     sync_status = sync_to_deploy(project)
