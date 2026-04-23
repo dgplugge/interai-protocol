@@ -28,6 +28,7 @@ from acal.verifier import verify_roundtrip
 from middleware.decision_validator import validate_decision, extract_decision_from_content, VALID_DECISIONS
 from middleware.thread_compactor import ThreadTracker
 from middleware.summary_meta import record_journal_entry, entries_since_last_summary
+from middleware.summary_index import upsert_chunk as index_upsert
 
 # --- Configuration ---
 
@@ -78,6 +79,9 @@ AGENTS_DIR = Path(__file__).parent.parent / "agents"
 # --- Thread Compactor (shared instance) ---
 SUMMARIES_DIR = Path(__file__).parent.parent / "summaries"
 thread_tracker = ThreadTracker(summary_dir=SUMMARIES_DIR, threshold=10)
+
+# --- RAG chunk index (single SQLite DB, project column isolates) ---
+INDEX_DB = SUMMARIES_DIR / "index.db"
 
 
 # --- Models ---
@@ -423,6 +427,19 @@ def create_message(project: str, msg: MessageCreate):
     except Exception:
         pass
 
+    # RAG indexer (Q5/Q9). One chunk per $ID-tagged journal entry.
+    try:
+        index_upsert(
+            INDEX_DB,
+            chunk_id=msg_id,
+            project=project,
+            entry_type=msg.type.upper(),
+            from_agent=msg.from_agent,
+            content=msg.payload,
+        )
+    except Exception:
+        pass
+
     # Update index
     index_entry = {
         "id": msg_id,
@@ -715,6 +732,19 @@ def dispatch_round(
     # the journal write — the journal is the source of truth.
     try:
         record_journal_entry(SUMMARIES_DIR, project)
+    except Exception:
+        pass
+
+    # RAG indexer (Q5/Q9). One chunk per $ID-tagged journal entry.
+    try:
+        index_upsert(
+            INDEX_DB,
+            chunk_id=msg_id,
+            project=project,
+            entry_type="REQUEST",
+            from_agent="Don",
+            content=req.prompt,
+        )
     except Exception:
         pass
 
