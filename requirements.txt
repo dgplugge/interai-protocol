@@ -1,0 +1,20 @@
+# Python dependencies for the AICP journal server + middleware.
+# Pinned to >= the versions the code was developed and tested against;
+# install with `pip install -r requirements.txt`.
+
+# HTTP server
+fastapi>=0.135
+uvicorn>=0.44
+pydantic>=2.12
+
+# Summarizer storage format (Q1)
+PyYAML>=6.0
+
+# RAG indexer + retrieval (Q5)
+numpy>=2.4
+
+# LLM clients
+#   openai    — embeddings (text-embedding-3-small)
+#   anthropic — summary generator (claude-haiku-4-5-20251001)
+openai>=2.32
+anthropic>=0.96
