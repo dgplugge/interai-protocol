@@ -1,0 +1,24 @@
+{
+  "summarizer_role": "Lumen",
+  "summarizer_fallback_chain": ["Lodestar", "Pharos", "Forge"],
+  "summary_generator": {
+    "provider": "anthropic",
+    "model": "claude-haiku-4-5-20251001",
+    "max_input_tokens": 8192,
+    "max_output_tokens": 2048,
+    "tier_token_budgets": {
+      "full": 2000,
+      "compressed": 500,
+      "shorthand": 100
+    }
+  },
+  "embedder": {
+    "provider": "openai",
+    "model": "text-embedding-3-small",
+    "dims": 1536
+  },
+  "retrieval": {
+    "top_k": 5
+  },
+  "threshold": 5
+}
