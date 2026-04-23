@@ -27,7 +27,13 @@ from kernel.loader import KernelLoader
 from acal.verifier import verify_roundtrip
 from middleware.decision_validator import validate_decision, extract_decision_from_content, VALID_DECISIONS
 from middleware.thread_compactor import ThreadTracker
-from middleware.summary_meta import record_journal_entry, entries_since_last_summary
+from middleware.summary_meta import (
+    record_journal_entry,
+    entries_since_last_summary,
+    is_summary_due,
+    summary_status,
+    DEFAULT_SUMMARY_THRESHOLD,
+)
 from middleware.summary_index import upsert_chunk as index_upsert
 
 # --- Configuration ---
@@ -937,6 +943,25 @@ def acal_verify(req: AcalVerifyRequest):
     """
     result = verify_roundtrip(req.aicp_message)
     return result.to_dict()
+
+
+# --- Summarizer Q2: threshold detection endpoint ---
+
+
+@app.get("/threads/{project}/summary-due")
+def get_summary_due(project: str, threshold: Optional[int] = None):
+    """Report whether the project has accumulated enough journal entries to
+    warrant a new summary run.
+
+    Detection only — this endpoint does not fire a summary. When the Q4
+    generator is in place, a scheduler or the Hub dispatches based on the
+    `due` field. Optional `threshold` query override lets callers test
+    sensitivity without writing code.
+    """
+    # Validate project exists so the response isn't misleading on typos.
+    get_journal_dir(project)
+    status = summary_status(SUMMARIES_DIR, project, threshold=threshold)
+    return status
 
 
 # --- Slice 8.6: Decision Validation Endpoint ---

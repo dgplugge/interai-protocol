@@ -29,6 +29,11 @@ from typing import Optional
 
 _MSG_ID_TAIL = re.compile(r"-(\d+)$")
 
+# Provisional default per Pharos Round 6 Q2 redo: "conservative starting
+# point, explicitly provisional — tune empirically once the summary generator
+# is in place and we can measure median entries per round across projects."
+DEFAULT_SUMMARY_THRESHOLD = 5
+
 
 def _id_num(msg_id: str) -> int:
     """Extract the numeric tail of an AICP message ID for order-safe comparison.
@@ -149,3 +154,54 @@ def is_prefix_stale(
 def entries_since_last_summary(summary_dir: Path | str, project: str) -> int:
     meta = read_meta(summary_dir, project)
     return meta.entries_since_last_summary if meta else 0
+
+
+def is_summary_due(
+    summary_dir: Path | str,
+    project: str,
+    threshold: Optional[int] = None,
+) -> bool:
+    """Q2 threshold detection: has the per-project counter reached the firing bar?
+
+    Caller decides what to do when True — the detection layer does not itself
+    trigger a summarization. This is intentional: the actual summary generator
+    (Q4) is not yet wired, so firing a signal without a consumer is wasted
+    work. When Q4 lands, the Hub or a scheduler calls this and acts on True.
+    """
+    t = DEFAULT_SUMMARY_THRESHOLD if threshold is None else threshold
+    return entries_since_last_summary(summary_dir, project) >= t
+
+
+def summary_status(
+    summary_dir: Path | str,
+    project: str,
+    threshold: Optional[int] = None,
+) -> dict:
+    """Full status snapshot for a project's summarization state.
+
+    Returns a dict ready to serialize as the HTTP response body, covering
+    the fields a consumer needs to decide whether to trigger a summary
+    run: the current counter, the threshold in effect, whether firing is
+    due, the last entry the summary covers, and when the meta file was
+    last touched. Returns sensible defaults when no meta file exists yet
+    (e.g. a brand-new project before its first journal write).
+    """
+    t = DEFAULT_SUMMARY_THRESHOLD if threshold is None else threshold
+    meta = read_meta(summary_dir, project)
+    if meta is None:
+        return {
+            "project": project,
+            "threshold": t,
+            "entries_since_last_summary": 0,
+            "last_entry_id": "",
+            "last_updated": "",
+            "due": False,
+        }
+    return {
+        "project": project,
+        "threshold": t,
+        "entries_since_last_summary": meta.entries_since_last_summary,
+        "last_entry_id": meta.last_entry_id,
+        "last_updated": meta.last_updated,
+        "due": meta.entries_since_last_summary >= t,
+    }

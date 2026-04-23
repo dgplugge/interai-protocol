@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from middleware.summary_meta import (
+    DEFAULT_SUMMARY_THRESHOLD,
     SummaryMeta,
     _id_num,
     meta_path,
@@ -18,7 +19,9 @@ from middleware.summary_meta import (
     record_journal_entry,
     mark_summary_written,
     is_prefix_stale,
+    is_summary_due,
     entries_since_last_summary,
+    summary_status,
 )
 
 
@@ -138,6 +141,67 @@ class TestStalenessDetection:
         with tempfile.TemporaryDirectory() as tmp:
             mark_summary_written(tmp, "P", "MSG-0099")
             assert is_prefix_stale(tmp, "P", "MSG-0100") is True
+
+
+class TestThresholdDetection:
+    def test_fresh_project_is_not_due(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            assert is_summary_due(tmp, "P") is False
+
+    def test_due_when_counter_hits_default_threshold(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for _ in range(DEFAULT_SUMMARY_THRESHOLD):
+                record_journal_entry(tmp, "P")
+            assert is_summary_due(tmp, "P") is True
+
+    def test_not_due_one_short_of_default_threshold(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for _ in range(DEFAULT_SUMMARY_THRESHOLD - 1):
+                record_journal_entry(tmp, "P")
+            assert is_summary_due(tmp, "P") is False
+
+    def test_due_resets_after_mark_summary_written(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for _ in range(DEFAULT_SUMMARY_THRESHOLD):
+                record_journal_entry(tmp, "P")
+            assert is_summary_due(tmp, "P") is True
+            mark_summary_written(tmp, "P", "MSG-0100")
+            assert is_summary_due(tmp, "P") is False
+
+    def test_custom_threshold_override(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            record_journal_entry(tmp, "P")
+            record_journal_entry(tmp, "P")
+            assert is_summary_due(tmp, "P", threshold=2) is True
+            assert is_summary_due(tmp, "P", threshold=3) is False
+
+
+class TestSummaryStatus:
+    def test_status_for_unknown_project_has_sensible_defaults(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            s = summary_status(tmp, "Unseen")
+            assert s["project"] == "Unseen"
+            assert s["threshold"] == DEFAULT_SUMMARY_THRESHOLD
+            assert s["entries_since_last_summary"] == 0
+            assert s["last_entry_id"] == ""
+            assert s["due"] is False
+
+    def test_status_reflects_counter_and_due(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            record_journal_entry(tmp, "P")
+            record_journal_entry(tmp, "P")
+            s = summary_status(tmp, "P", threshold=2)
+            assert s["entries_since_last_summary"] == 2
+            assert s["threshold"] == 2
+            assert s["due"] is True
+
+    def test_status_reflects_last_entry_id_after_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mark_summary_written(tmp, "P", "MSG-0050")
+            s = summary_status(tmp, "P")
+            assert s["last_entry_id"] == "MSG-0050"
+            assert s["entries_since_last_summary"] == 0
+            assert s["due"] is False
 
 
 class TestSerialization:
