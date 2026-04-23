@@ -38,6 +38,10 @@ from middleware.summary_index import upsert_chunk as index_upsert
 from middleware.embedder import embed_text as index_embed, EmbedError
 from middleware.agent_config import load_config as load_agent_config
 from middleware.retrieval import retrieve as rag_retrieve
+from middleware.summary_generator import (
+    update_project_summary as run_summary_generator,
+    SummaryGenerationError,
+)
 
 # --- Configuration ---
 
@@ -999,6 +1003,43 @@ def retrieve_chunks(project: str, req: RetrievalRequest):
         "top_k": req.top_k if req.top_k is not None else agent_config.retrieval.top_k,
         "count": len(hits),
         "hits": [h.to_dict() for h in hits],
+    }
+
+
+# --- Summarizer Q4: generate-summary endpoint ---
+
+
+class GenerateSummaryRequest(BaseModel):
+    limit: Optional[int] = None  # most-recent N entries; None = all
+
+
+@app.post("/threads/{project}/generate-summary")
+def generate_project_summary(project: str, req: GenerateSummaryRequest):
+    """Run the Q4 summary generator for a project.
+
+    Reads raw journal entries (most-recent `limit` entries if given),
+    calls the configured LLM (Claude Haiku by default), writes
+    summary.yml with three tiers, and advances summary_meta's
+    last_entry_id + resets the threshold counter.
+
+    Returns 502 when the LLM call fails; the prior summary stays in
+    place. 404 when the project's journal dir does not exist.
+    """
+    get_journal_dir(project)
+    try:
+        summary = run_summary_generator(
+            project=project,
+            journals_root=JOURNALS_ROOT,
+            summaries_root=SUMMARIES_DIR,
+            limit=req.limit,
+            config=agent_config,
+        )
+    except SummaryGenerationError as e:
+        raise HTTPException(502, detail={"error": "SUMMARY_GENERATION_FAILED", "message": str(e)})
+    return {
+        "project": project,
+        "summary": summary.to_dict(),
+        "status": "generated" if summary.full or summary.compressed or summary.shorthand else "empty",
     }
 
 
