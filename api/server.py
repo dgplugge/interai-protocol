@@ -37,6 +37,7 @@ from middleware.summary_meta import (
 from middleware.summary_index import upsert_chunk as index_upsert
 from middleware.embedder import embed_text as index_embed, EmbedError
 from middleware.agent_config import load_config as load_agent_config
+from middleware.retrieval import retrieve as rag_retrieve
 
 # --- Configuration ---
 
@@ -966,6 +967,39 @@ def acal_verify(req: AcalVerifyRequest):
     """
     result = verify_roundtrip(req.aicp_message)
     return result.to_dict()
+
+
+# --- Summarizer Q5: RAG retrieval endpoint ---
+
+
+class RetrievalRequest(BaseModel):
+    query: str
+    top_k: Optional[int] = None
+
+
+@app.post("/threads/{project}/retrieve")
+def retrieve_chunks(project: str, req: RetrievalRequest):
+    """Return the top-K chunks most similar to `query` for `project`.
+
+    Empty result set when: query cannot be embedded (e.g., missing API key),
+    the project has no embedded chunks, or top_k is zero. Callers fall back
+    to raw-last-N per Q8 when the result is empty.
+    """
+    get_journal_dir(project)
+    hits = rag_retrieve(
+        query=req.query,
+        project=project,
+        db_path=INDEX_DB,
+        top_k=req.top_k,
+        config=agent_config,
+    )
+    return {
+        "project": project,
+        "query": req.query,
+        "top_k": req.top_k if req.top_k is not None else agent_config.retrieval.top_k,
+        "count": len(hits),
+        "hits": [h.to_dict() for h in hits],
+    }
 
 
 # --- Summarizer Q2: threshold detection endpoint ---
