@@ -20,5 +20,9 @@
   "retrieval": {
     "top_k": 5
   },
+  "scheduler": {
+    "enabled": false,
+    "interval_seconds": 300
+  },
   "threshold": 5
 }

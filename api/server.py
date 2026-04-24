@@ -42,6 +42,7 @@ from middleware.summary_generator import (
     update_project_summary as run_summary_generator,
     SummaryGenerationError,
 )
+from middleware.summary_scheduler import run_scheduler, run_tick as scheduler_tick
 
 # --- Configuration ---
 
@@ -79,6 +80,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.on_event("startup")
+async def _start_summary_scheduler():
+    """Launch the background summary scheduler when enabled in
+    agent_config.json. Off by default — the operator opts in."""
+    global _scheduler_task, _scheduler_stop
+    import asyncio  # local import avoids polluting module namespace
+    if not agent_config.scheduler.enabled:
+        return
+    _scheduler_stop = asyncio.Event()
+    _scheduler_task = asyncio.create_task(
+        run_scheduler(
+            project_keys=list(PROJECTS.keys()),
+            journals_root=JOURNALS_ROOT,
+            summaries_root=SUMMARIES_DIR,
+            config=agent_config,
+            stop_event=_scheduler_stop,
+        )
+    )
+
+
+@app.on_event("shutdown")
+async def _stop_summary_scheduler():
+    """Cancel the scheduler task and wait for it to exit cleanly."""
+    global _scheduler_task, _scheduler_stop
+    if _scheduler_stop is not None:
+        _scheduler_stop.set()
+    if _scheduler_task is not None:
+        _scheduler_task.cancel()
+        try:
+            await _scheduler_task
+        except Exception:
+            pass
+        _scheduler_task = None
+        _scheduler_stop = None
+
 # --- Rate Limiter (shared instance) ---
 rate_limiter = ProviderRateLimiter(default_delay=3.0)
 
@@ -99,6 +136,12 @@ INDEX_DB = SUMMARIES_DIR / "index.db"
 # --- Agent config (summarizer role, fallback chain, embedder, thresholds) ---
 # Loaded once at startup; mutable in principle but we don't hot-reload today.
 agent_config = load_agent_config()
+
+
+# Background scheduler handle — populated in the startup event when
+# agent_config.scheduler.enabled is True.
+_scheduler_task = None
+_scheduler_stop = None
 
 
 def _try_embed(content: str):

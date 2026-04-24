@@ -83,12 +83,31 @@ class RetrievalConfig:
 
 
 @dataclass
+class SchedulerConfig:
+    """Background summarizer scheduler. Disabled by default — enable in
+    agent_config.json when the summary generator is configured with an API
+    key and you want automated firing on threshold crossings."""
+    enabled: bool = False
+    interval_seconds: int = 300  # 5 minutes; summaries are expensive, avoid frequent runs
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "SchedulerConfig":
+        c = cls()
+        if "enabled" in data:
+            c.enabled = bool(data["enabled"])
+        if "interval_seconds" in data:
+            c.interval_seconds = max(5, int(data["interval_seconds"]))
+        return c
+
+
+@dataclass
 class AgentConfig:
     summarizer_role: str = "Lumen"
     summarizer_fallback_chain: list[str] = field(default_factory=list)
     summary_generator: SummaryGeneratorConfig = field(default_factory=SummaryGeneratorConfig)
     embedder: EmbedderConfig = field(default_factory=EmbedderConfig)
     retrieval: RetrievalConfig = field(default_factory=RetrievalConfig)
+    scheduler: SchedulerConfig = field(default_factory=SchedulerConfig)
     threshold: int = 5
     # Raw key-value fallback for API keys loaded from the config file.
     # Env vars always win over these.
@@ -107,6 +126,8 @@ class AgentConfig:
             c.embedder = EmbedderConfig.from_dict(data["embedder"])
         if isinstance(data.get("retrieval"), dict):
             c.retrieval = RetrievalConfig.from_dict(data["retrieval"])
+        if isinstance(data.get("scheduler"), dict):
+            c.scheduler = SchedulerConfig.from_dict(data["scheduler"])
 
         c.threshold = int(data.get("threshold", 5))
 
