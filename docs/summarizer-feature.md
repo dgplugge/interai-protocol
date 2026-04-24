@@ -44,6 +44,7 @@ relevant chunks (RAG) or trigger a fresh summary on demand.
 | `GET`  | `/threads/{project}/summary-due` | Returns `{due, threshold, entries_since_last_summary, last_entry_id, last_updated}`. Optional `?threshold=N`. |
 | `POST` | `/threads/{project}/retrieve` | Body `{query, top_k?}`. Returns `{count, hits: [{chunk_id, content, score, ...}]}`. |
 | `POST` | `/threads/{project}/generate-summary` | Body `{limit?}`. Runs the Q4 generator end-to-end; writes `summary.yml`, advances `summary_meta`. 502 on LLM failure. |
+| `GET`  | `/threads/{project}/rag-prefix` | Query params `?query=...&top_k=N`. Returns a pre-formatted `text/plain` prefix block for the Hub to splice into the agent prompt. Empty string (200) when no hits or empty query. |
 
 Existing endpoints unchanged: `POST /threads/{project}/messages`,
 `POST /threads/{project}/dispatch`, `GET /threads/{project}`, etc.
@@ -119,6 +120,11 @@ backfilled later via `python scripts/backfill_embeddings.py`.
 
 ## What is NOT here (yet)
 
-- **Hub VB.NET RAG consumer.** The Hub needs to call `POST /threads/{project}/retrieve` during prompt assembly and splice hits into the prefix. That work lives in a separate codebase (`H:\Code\interai-hub\`) and is the next slice.
-- **Background scheduler.** `summary-due` tells a caller whether a summary is overdue; actually firing the generator on a cadence is a scheduler slice (small).
 - **Sync-to-deploy.** The summaries/ directory is not currently replicated to the `aicp-journals` deploy repo. Journal writes are; summaries are local artifacts.
+
+## What was delivered today beyond the original scope
+
+- **Background scheduler** (`src/middleware/summary_scheduler.py`) — opt-in via `scheduler.enabled=true` in `agent_config.json`; default interval 300s. Calls `update_project_summary` on any project whose counter crossed the threshold.
+- **Hub VB.NET RAG consumer** — `FetchRagContext` in `AgentHubPresenter.vb` calls `GET /threads/{project}/rag-prefix` once per dispatch and prepends the returned text block to the prompt. Lives in the `interai-hub` repo (commit 42664a2).
+- **Backfill utility** (`scripts/backfill_embeddings.py`) — CLI that walks `chunk_index`, finds NULL embeddings, batches through the OpenAI API, writes the vectors back. Supports `--dry-run`, `--project`, `--batch`.
+- **requirements.txt** at the repo root pinning the six runtime deps.
