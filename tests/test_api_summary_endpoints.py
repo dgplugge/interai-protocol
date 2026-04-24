@@ -196,6 +196,68 @@ class TestGenerateSummary:
         assert "simulated LLM failure" in err["message"]
 
 
+class TestRagPrefix:
+    def test_404_on_unknown_project(self, isolated_server):
+        r = isolated_server["client"].get(
+            "/threads/NoSuchProject/rag-prefix?query=hello"
+        )
+        assert r.status_code == 404
+
+    def test_empty_query_returns_empty_string(self, isolated_server):
+        r = isolated_server["client"].get(
+            f"/threads/{isolated_server['project']}/rag-prefix?query="
+        )
+        assert r.status_code == 200
+        assert r.text == ""
+
+    def test_no_hits_returns_empty_string(self, isolated_server, monkeypatch):
+        monkeypatch.setattr(server_module, "rag_retrieve", lambda **kwargs: [])
+        r = isolated_server["client"].get(
+            f"/threads/{isolated_server['project']}/rag-prefix?query=anything"
+        )
+        assert r.status_code == 200
+        assert r.text == ""
+        assert "text/plain" in r.headers.get("content-type", "")
+
+    def test_formats_hits_as_prefix_block(self, isolated_server, monkeypatch):
+        from middleware.summary_index import Chunk
+        from middleware.retrieval import RetrievalHit
+
+        fake_hits = [
+            RetrievalHit(
+                chunk=Chunk(
+                    chunk_id="MSG-0100", project="InterAI-Protocol",
+                    entry_type="UPDATE", from_agent="Pharos",
+                    content="first hit content", token_count=3,
+                    last_indexed="2026-04-23T10:00:00",
+                ),
+                score=0.875,
+            ),
+            RetrievalHit(
+                chunk=Chunk(
+                    chunk_id="MSG-0200", project="InterAI-Protocol",
+                    entry_type="REPORT", from_agent="Lumen",
+                    content="second hit content", token_count=3,
+                    last_indexed="2026-04-23T10:05:00",
+                ),
+                score=0.421,
+            ),
+        ]
+        monkeypatch.setattr(server_module, "rag_retrieve", lambda **kwargs: fake_hits)
+
+        r = isolated_server["client"].get(
+            f"/threads/{isolated_server['project']}/rag-prefix?query=something"
+        )
+        assert r.status_code == 200
+        text = r.text
+        assert "=== RELEVANT CONTEXT (RAG) ===" in text
+        assert "[MSG-0100 | UPDATE | from=Pharos | score=0.875]" in text
+        assert "first hit content" in text
+        assert "[MSG-0200 | REPORT | from=Lumen | score=0.421]" in text
+        assert "second hit content" in text
+        assert text.rstrip().endswith("=== END CONTEXT ===")
+
+
 class TestSummaryDue:
     def test_fresh_project_reports_not_due(self, isolated_server):
         r = isolated_server["client"].get(

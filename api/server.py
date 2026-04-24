@@ -16,6 +16,7 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
 # Add src to path for middleware imports
@@ -1047,6 +1048,52 @@ def retrieve_chunks(project: str, req: RetrievalRequest):
         "count": len(hits),
         "hits": [h.to_dict() for h in hits],
     }
+
+
+@app.get("/threads/{project}/rag-prefix", response_class=PlainTextResponse)
+def rag_prefix(project: str, query: str, top_k: Optional[int] = None):
+    """Pre-formatted RAG prefix for the Hub to splice into the prompt.
+
+    Returns a plain-text block with a header, each hit formatted as
+    `[MSG-XXXX | TYPE | from=AGENT | score=0.97]` followed by the content,
+    and a trailer. Returns an empty string (200 OK) when no hits — the
+    caller can concatenate unconditionally without checking.
+
+    This endpoint exists because the Hub (VB.NET) has a simple
+    single-field JSON extractor and parsing the nested `hits` array from
+    /retrieve is more ceremony than it's worth. The Python side formats;
+    the Hub concatenates.
+    """
+    get_journal_dir(project)
+    if not query:
+        return ""
+    hits = rag_retrieve(
+        query=query,
+        project=project,
+        db_path=INDEX_DB,
+        top_k=top_k,
+        config=agent_config,
+    )
+    if not hits:
+        return ""
+
+    lines = [
+        "=== RELEVANT CONTEXT (RAG) ===",
+        "Retrieved by similarity to the current prompt; use as additional background.",
+        "",
+    ]
+    for h in hits:
+        c = h.chunk
+        lines.append(
+            f"[{c.chunk_id} | {c.entry_type} | from={c.from_agent} | score={h.score:.3f}]"
+        )
+        lines.append(c.content)
+        lines.append("---")
+    # Drop the trailing '---' for a cleaner close.
+    if lines[-1] == "---":
+        lines.pop()
+    lines.append("=== END CONTEXT ===")
+    return "\n".join(lines)
 
 
 # --- Summarizer Q4: generate-summary endpoint ---
