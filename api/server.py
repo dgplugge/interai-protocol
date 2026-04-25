@@ -63,7 +63,7 @@ PROVIDERS = [
     {"name": "Forge",     "provider": "OpenAI",    "model": "o3-mini",           "role": "Reasoner"},
     {"name": "SpinDrift", "provider": "OpenAI",    "model": "GPT-4o",            "role": "Analyst"},
     {"name": "Trident",   "provider": "Google",    "model": "Gemini 2.5 Flash",  "role": "Research / Synthesis"},
-    {"name": "Lumen",     "provider": "Mistral",   "model": "Devstral 2",        "role": "Pending Setup"},
+    {"name": "Lumen",     "provider": "Mistral",   "model": "Devstral 2",        "role": "Efficiency Specialist"},
 ]
 
 # --- App ---

@@ -1,5 +1,5 @@
 # CONTEXT KERNEL: MVP Build
-# Version: 1.3 | Updated: 2026-04-17 | Task: interai-protocol MVP convergence
+# Version: 1.4 | Updated: 2026-04-25 | Task: interai-protocol MVP convergence
 
 ---PROTO---
 
@@ -59,7 +59,7 @@ Never adopt another agent's code.
 
 ---STATE---
 
-Repo state (as of 2026-04-17, commit ebf2654):
+Repo state (as of 2026-04-25, commit 0be3a72):
 
 BUILT (in tree, tested, committed):
   api/server.py                          — FastAPI journal API (v2.3.0)
@@ -69,6 +69,8 @@ BUILT (in tree, tested, committed):
     decision_validator + thread_tracker invoked on both /messages and
       /dispatch paths; responses carry messages_since_compact + compact_due
     GET /agents and GET /agents/{name}/card serve per-agent profile cards
+    Summarizer endpoints: /summary-due, /retrieve, /generate-summary,
+      /rag-prefix (text/plain prefix block for Hub splice)
   src/acal/converter.py                  — ACAL ↔ AICP bidirectional
   src/acal/verifier.py                   — round-trip verification
   src/kernel/loader.py                   — kernel discovery + 8K budget
@@ -77,17 +79,27 @@ BUILT (in tree, tested, committed):
   src/middleware/token_estimator.py      — char/token estimate
   src/middleware/decision_validator.py   — $DECISION enforcement (Slice 8.6)
   src/middleware/thread_compactor.py     — thread summaries at N=10 (Slice 8.5)
+  src/middleware/summary_*.py            — TieredSummary store, meta counter,
+    SQLite chunk_index, RAG retrieval, Haiku tier generator, fidelity
+    check, opt-in background scheduler
+  src/middleware/embedder.py             — OpenAI text-embedding-3-small
+  scripts/backfill_embeddings.py         — CLI for NULL-embedding rows
   src/hub/{cli,status}.py                — health dashboard + CLI
   viewer/server.py                       — AICP Viewer (filters, search, badges)
   kernels/kernel-acal-dev.md             — first live kernel
-  agents/{lumen,lodestar,spindrift,trident}.md — per-agent profile cards
-    (cards target failure modes observed in MSG-0147/0148; Pharos and Forge
-    intentionally uncarded by evidence-driven policy)
+  agents/*.md                            — per-agent profile cards (all 6:
+    lumen, lodestar, spindrift, trident, pharos, forge). Each card
+    includes Role, Response discipline, documented failure modes,
+    Identity anchoring, and a unique canary string.
 
 NOT YET BUILT (candidates for next work):
   Hub VB.NET card injection — this repo serves /agents/{name}/card;
     the Hub VB.NET app must fetch and prepend as system message before
-    each provider call. Cards are latent until that wiring lands.
+    each provider call. Status as of 2026-04-25: PENDING VERIFICATION.
+    Canary-based test prompt drafted; Don to broadcast and report results.
+    Cards are latent until that wiring lands and is verified for all 6
+    agents (including pharos and forge, added since the original 4-card
+    deployment).
   Context Kernel update protocol — how Hub writes learnings back into
     STATE/MEMORY sections after a dispatch. Loader reads; nothing writes.
   CBOR compaction — thread_compactor.py currently emits JSON sidecars.
@@ -99,9 +111,6 @@ NOT YET BUILT (candidates for next work):
   Trident truncation in Hub Gemini client — MSG-0155 R5 truncated at
     $ROLE header; likely max_tokens or timeout misconfigured in Hub.
     Diagnosis and fix belongs in Hub VB.NET code.
-  PROVIDERS stale role flag — Lumen marked "Pending Setup" in api/server.py
-    despite being active. Causes default-agent dispatches to exclude Lumen.
-    One-line fix pending.
 
 EXTERNAL (Hub VB.NET app, not in this repo):
   Provider API calls (Anthropic/OpenAI/Google/Mistral SDKs)
@@ -143,6 +152,30 @@ EXTERNAL (Hub VB.NET app, not in this repo):
   echoes and cites other agents. Trident response truncated (infra).
   Card deployment expected to correct remaining behaviors once live.
 
+[2026-04-22 — 04-23] Summarizer-Role feature shipped (Rounds 1–8).
+  Three-tier YAML summary + SQLite chunk_index + RAG retrieval. New
+  endpoints: /summary-due, /retrieve, /generate-summary, /rag-prefix.
+  Opt-in background scheduler. Backfill CLI for NULL embeddings. See
+  docs/summarizer-feature.md. Hub VB.NET RAG consumer (FetchRagContext
+  in AgentHubPresenter.vb, interai-hub commit 42664a2) prepends the
+  rag-prefix block to each dispatch.
+
+[2026-04-25] Pharos and Forge profile cards added (agents/pharos.md,
+  agents/forge.md). All 6 agents now carded. Test suite updated:
+  test_pharos_now_carded / test_forge_now_carded replace the prior
+  _not_carded_yet expectations; pharos and forge added to the
+  parametrized content checks. 30 agent-card tests pass.
+
+[2026-04-25] PROVIDERS table fix: Lumen role flipped from
+  "Pending Setup" to "Efficiency Specialist" in api/server.py. Default-
+  agent dispatches now include Lumen instead of silently excluding her.
+
+[2026-04-25] Hub-side card injection PENDING VERIFICATION. Canary-based
+  test prompt drafted: round-robin all 6 agents, ask each to report its
+  canary string, expect either the exact card-defined canary or the
+  literal NO-CARD-LOADED. Don to broadcast and report results; that
+  result determines whether NEXT_STEPS #6 closes or remains open.
+
 ---DICT---
 
 Task-specific tokens for MVP convergence:
@@ -182,7 +215,9 @@ Candidate next moves (choose ONE per round, do not fan out):
 
 6. [P,L] Agent profile card system. agents/*.md + /agents/{name}/card
    endpoint in this repo + Hub VB.NET fetch-and-prepend.
-   Status: REPO-SIDE DONE (2026-04-17). Hub-side pending.
+   Status: REPO-SIDE DONE for all 6 agents (2026-04-25 — pharos and
+   forge added since the original 4-card deployment). Hub-side
+   verification PENDING via canary test prompt.
 
 7. [L,F] Fix Trident truncation in Hub's Gemini client (MSG-0155 R5).
    Investigate max_tokens, timeout, or stream parser. Hub VB.NET work.
