@@ -118,6 +118,10 @@ With `OPENAI_API_KEY` set, the resulting chunk row will have a populated
 `embedding` blob; without it, the row lands with NULL and can be
 backfilled later via `python scripts/backfill_embeddings.py`.
 
+## Operator controls (Hub side)
+
+- **Include RAG context checkbox** (`interai-hub` repo, 2026-04-26). The dispatch UI carries an `Include RAG context` checkbox in `grpControls`, default checked. When unchecked, `AgentHubPresenter.FetchRagContext` short-circuits to empty string and no rag-prefix block is appended to the agent prompt for that dispatch. Use cases: verification dispatches (canary tests, identity checks), cold benchmarks where you want to see raw agent reasoning, debug isolation when an agent gives a weird answer, sensitive-scope dispatches that shouldn't draw in unrelated prior context. The checkbox is a per-dispatch toggle; it does not change `agent_config.json`. Re-checking restores normal RAG behavior immediately.
+
 ## What is NOT here (yet)
 
 - **Sync-to-deploy.** The summaries/ directory is not currently replicated to the `aicp-journals` deploy repo. Journal writes are; summaries are local artifacts.
