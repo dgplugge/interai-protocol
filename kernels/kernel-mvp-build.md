@@ -1,5 +1,5 @@
 # CONTEXT KERNEL: MVP Build
-# Version: 1.4 | Updated: 2026-04-25 | Task: interai-protocol MVP convergence
+# Version: 1.5 | Updated: 2026-04-26 | Task: interai-protocol MVP convergence
 
 ---PROTO---
 
@@ -91,15 +91,16 @@ BUILT (in tree, tested, committed):
     lumen, lodestar, spindrift, trident, pharos, forge). Each card
     includes Role, Response discipline, documented failure modes,
     Identity anchoring, and a unique canary string.
+    Hub-side fetch-and-prepend wiring verified end-to-end by canary
+    round on 2026-04-26: all 6 agents returned their card-defined
+    canaries; no NO-CARD-LOADED responses; no fabrications.
+  interai-hub: chkIncludeRag checkbox in frmAgentHub.grpControls
+    (default checked). When unchecked, AgentHubPresenter.FetchRagContext
+    short-circuits to empty string — per-dispatch isolation from RAG
+    corpus retrieval for verification, cold benchmark, debug-isolation,
+    and sensitive-scope dispatches. interai-hub@ecd9881.
 
 NOT YET BUILT (candidates for next work):
-  Hub VB.NET card injection — this repo serves /agents/{name}/card;
-    the Hub VB.NET app must fetch and prepend as system message before
-    each provider call. Status as of 2026-04-25: PENDING VERIFICATION.
-    Canary-based test prompt drafted; Don to broadcast and report results.
-    Cards are latent until that wiring lands and is verified for all 6
-    agents (including pharos and forge, added since the original 4-card
-    deployment).
   Context Kernel update protocol — how Hub writes learnings back into
     STATE/MEMORY sections after a dispatch. Loader reads; nothing writes.
   CBOR compaction — thread_compactor.py currently emits JSON sidecars.
@@ -176,6 +177,33 @@ EXTERNAL (Hub VB.NET app, not in this repo):
   literal NO-CARD-LOADED. Don to broadcast and report results; that
   result determines whether NEXT_STEPS #6 closes or remains open.
 
+[2026-04-26] Hub-side Include RAG context checkbox shipped
+  (interai-hub@ecd9881; this repo doc update @3b5400e). Default
+  checked, backward-compatible. When unchecked, FetchRagContext
+  short-circuits — per-dispatch isolation from corpus retrieval.
+  Use cases: canary tests, identity checks, cold benchmarks, debug
+  isolation, sensitive-scope dispatches. AgentHubTests 24/24 green.
+
+[2026-04-26] CARD INJECTION VERIFIED. Canary round broadcast with
+  chkIncludeRag unchecked and Hub freshly restarted (clean re-injected
+  state). All 6 agents returned exact card-defined canaries:
+    Pharos: PHAROS-CANARY-P7H2M-89N
+    Lodestar: LODESTAR-CANARY-L3J7K-42X
+    SpinDrift: SPINDRIFT-CANARY-S9W4H-17R
+    Forge: FORGE-CANARY-F5M3P-73Q
+    Trident: TRIDENT-CANARY-T6V1C-88E
+    Lumen: LUMEN-CANARY-U2Y8G-55T
+  No NO-CARD-LOADED responses; no fabrications. Hub fetch-and-prepend
+  wiring proven end-to-end for all 6 agents including pharos and forge
+  (added 2026-04-25). NEXT_STEPS #6 CLOSED. Notable side observations:
+  (a) Forge 346 / Lumen 198 token counts include hidden reasoning
+  tokens (o3-mini, Mistral) — output bytes minimal as instructed;
+  (b) Lumen tacked on a $DECISION + ROUND SUMMARY despite the
+  prompt's explicit "canary only" instruction — strict discipline
+  violation but verification target was preserved; (c) Pharos
+  correctly suppressed the round summary this round, breaking a two-
+  round pattern of card #10 violations.
+
 ---DICT---
 
 Task-specific tokens for MVP convergence:
@@ -215,9 +243,9 @@ Candidate next moves (choose ONE per round, do not fan out):
 
 6. [P,L] Agent profile card system. agents/*.md + /agents/{name}/card
    endpoint in this repo + Hub VB.NET fetch-and-prepend.
-   Status: REPO-SIDE DONE for all 6 agents (2026-04-25 — pharos and
-   forge added since the original 4-card deployment). Hub-side
-   verification PENDING via canary test prompt.
+   Status: CLOSED (2026-04-26). All 6 cards in place; Hub-side fetch-
+   and-prepend verified end-to-end via canary round (all 6 matched).
+   See MEMORY 2026-04-26 entry for verification record.
 
 7. [L,F] Fix Trident truncation in Hub's Gemini client (MSG-0155 R5).
    Investigate max_tokens, timeout, or stream parser. Hub VB.NET work.
