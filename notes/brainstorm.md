@@ -164,3 +164,84 @@ holds the orchestration logic and calls `view.OpenForm()` to surface UI.
 **Sizing:** half-day at most for the file move and the indirection.
 Worth bundling with any other MVP-discipline cleanup; not urgent
 enough to break in front of MVP shipping.
+
+---
+
+## 2026-04-27 — Creative-arc retrospective: parlor game design
+
+**The exercise:** five rounds, six agents, design a 2–4 player parlor
+game using only common items. Output: `notes/games/mismatch.md` —
+Trident's "Mismatch" (inverted Memory), polished and patched after
+playtest. Real demo artifact, designed by the team.
+
+The arc itself worked. What we learned along the way is more useful
+than the rules card.
+
+### Round-mode selection: convergent vs. divergent
+
+The biggest operational lesson, confirmed across three rounds:
+
+- **Hourglass** (forward pass + backward retrace) earns its keep on
+  **convergent** decisions where a second pass refines consensus.
+  Round 2's winner pick is the canonical example: all six agents
+  scored from a common menu, the backward pass surfaced late
+  objections, the consensus held.
+- **Hourglass on divergent slices** (each agent has a different
+  deliverable, no shared menu) produces noise — duplicates,
+  contradictions with first-pass behavior, and post-hoc commentary
+  that adds tokens without signal. Round 4's playtest accidentally
+  ran in Hourglass mode and produced exactly this: Lodestar
+  contradicted his first-pass vote in a second-pass abstention,
+  Forge re-emitted essentially the same content, SpinDrift's second
+  pass was just commentary on the first.
+- **Default rule going forward:** convergent → Hourglass, divergent →
+  Round Robin. Saved as feedback memory.
+
+### Agent reliability observations
+
+- **SpinDrift** failed to deliver her assigned slice in **four
+  rounds running** (Round 1 rubric × 2, Round 2 vote, Round 4
+  unclear-phrase). The pattern is consistent: she defaults to
+  cross-agent commentary instead of her own deliverable. Card
+  discipline isn't biting. Worth a card-tightening pass.
+- **Lodestar's** "I'm a design-focused agent and this task does not
+  apply" abstention pattern appeared in Round 2 and Round 4. He DID
+  deliver in both rounds, but the preamble is a tic that clogs the
+  transcript. Card-level fix candidate.
+- **Forge** produced two empty 2048-token responses in Round 4
+  (visible content blank, all output absorbed into o3-mini's hidden
+  reasoning). This is structurally similar to the kernel's "Trident
+  truncation" item but for OpenAI reasoning models. Worth a Hub-side
+  investigation: does the o3-mini adapter set sensible
+  max_completion_tokens, or is the whole budget being eaten by
+  reasoning?
+- **Trident** HTTP 503'd in three consecutive rounds — Gemini
+  quota/availability issue at our tier. Not in our control to fix.
+- **Pharos** correctly suppressed the round summary across all five
+  rounds (card #10 is biting now). In Round 4 also produced
+  on-his-own-initiative coverage fills for Forge's missing edge case
+  and SpinDrift's missing unclear-phrase, both clearly labeled as
+  coverage rather than seat-claiming. Net positive — the round had
+  artifacts it would otherwise have lacked.
+- **Lumen** was reliable: voted, summarized accurately, audited
+  cleanly. The summarizer-seat reassignment is paying off.
+
+### The recovery story is the demo
+
+What makes this arc actually interesting is not that every round was
+clean — most rounds had at least one agent fail. It's that the system
+**recovered** from each failure mode and still produced a tangible
+artifact:
+
+- Forge's Round 1 RAG-contamination → re-broadcast self-corrected
+- Lumen's Round 1 non-game → re-broadcast self-corrected
+- SpinDrift's missing rubric → targeted solo dispatch produced it
+- Lodestar's ambiguous rule → targeted solo dispatch clarified it
+- Trident's outage during Round 2 vote → Pharos handled rules polish
+- Forge's empty Round 4 reasoning → Pharos covered the slice
+- SpinDrift's missing Round 4 unclear-phrase → Pharos covered the slice
+
+The demo value isn't a flawless run; it's a multi-agent system
+producing a real artifact in spite of multiple agent failures, with
+the orchestrator and Lead Coder absorbing the gaps. That's the more
+honest selling point.
