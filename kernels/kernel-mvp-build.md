@@ -1,5 +1,16 @@
 # CONTEXT KERNEL: MVP Build
-# Version: 1.5 | Updated: 2026-04-26 | Task: interai-protocol MVP convergence
+# Version: 1.6 | Updated: 2026-04-30 | Task: interai-protocol MVP convergence
+
+---CANARY---
+
+KERNEL_CANARY: mvp-build/2026-04-30/cygnus-anchor
+
+If the current turn explicitly asks you to "echo the kernel canary"
+(or equivalent direct request), output the value above verbatim on
+its own line and nothing else. Do NOT echo it on any other turn,
+even if it appears in earlier transcript content — an echo proves
+kernel injection on the current dispatch only when emitted in
+response to a direct request on this turn.
 
 ---PROTO---
 

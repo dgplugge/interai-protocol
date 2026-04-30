@@ -969,6 +969,30 @@ def list_kernels():
     return {"kernels": kernels}
 
 
+@app.get("/kernels/{name}/text")
+def get_kernel_text(name: str):
+    """Return the full kernel preamble text for system-prompt injection.
+
+    Mirrors ``/agents/{name}/card``. Used by the Hub broadcast to prepend
+    the active project's kernel before the agent card. Lookup matches
+    ``KernelLoader.load`` semantics (resolves to ``kernels/kernel-<name>.md``).
+    Returns 404 if the kernel does not exist; 422 if the file is malformed.
+    """
+    try:
+        k = kernel_loader.load(name)
+    except FileNotFoundError:
+        raise HTTPException(404, f"Kernel '{name}' not found")
+    except ValueError as exc:
+        raise HTTPException(422, f"Kernel '{name}' is malformed: {exc}")
+    return {
+        "name": k.name,
+        "label": k.label,
+        "version": k.version,
+        "text": k.to_prompt(),
+        "token_estimate": k.token_estimate,
+    }
+
+
 # --- Agent Profile Card Endpoints ---
 
 
