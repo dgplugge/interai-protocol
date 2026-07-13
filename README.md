@@ -48,6 +48,11 @@ respond using the shared Inter-AI Protocol format.
 
 The `viewer/` folder contains a lightweight browser-based viewer for AICP message journals.
 
+## Compression Transport MVP
+
+The Go gRPC MVP for single-call JSON compression and transmission lives in `cmd/compression-gateway/` and `internal/transport/`.
+See `docs/single-api-compression-transmission.md` for the architecture diagram, flow, run commands, and acceptance test details.
+
 ### Quick Start
 
 ```bash

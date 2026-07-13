@@ -407,8 +407,9 @@ class TestRealKernel:
         loader = KernelLoader(self.REAL_KERNELS)
         k = loader.load("acal-dev")
         assert k.label == "ACAL Development"
-        assert k.version == "1.0"
-        assert len(k.sections) == 6
+        assert k.version == "1.1"
+        assert len(k.sections) == 7
+        assert "CANARY" in k.sections
         for sec in KERNEL_SECTIONS:
             assert sec in k.sections
         # Should be well within budget

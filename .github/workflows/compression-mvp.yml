@@ -1,0 +1,33 @@
+name: Compression MVP
+
+on:
+  push:
+    paths:
+      - "cmd/compression-gateway/**"
+      - "cmd/compression-smoke/**"
+      - "internal/transport/**"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/compression-mvp.yml"
+  pull_request:
+    paths:
+      - "cmd/compression-gateway/**"
+      - "cmd/compression-smoke/**"
+      - "internal/transport/**"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/compression-mvp.yml"
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          cache: true
+      - name: Download dependencies
+        run: go mod download
+      - name: Run compression integration tests
+        run: go test ./...
