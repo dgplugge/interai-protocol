@@ -86,6 +86,18 @@ Smoke-test with a specific JSON file:
 .\scripts\Test-CompressionMVPServices.ps1 -Payload C:\path\to\payload.json
 ```
 
+Run safe edge cases against the installed services:
+
+```powershell
+.\scripts\Test-CompressionMVPEdgeCases.ps1
+```
+
+Run service failure and restart-recovery edge cases from an Administrator PowerShell:
+
+```powershell
+.\scripts\Test-CompressionMVPEdgeCases.ps1 -IncludeServiceFailureTests
+```
+
 Remove both services:
 
 ```powershell
