@@ -14,7 +14,7 @@ response to a direct request on this turn.
 
 ---PROTO---
 
-Repo: interai-protocol  (H:\Code\interai-protocol)
+Repo: interai-protocol  (C:\Code\Projects\InterAI\interai-protocol)
 Stack: Python 3 / FastAPI / pytest / Pydantic v2
 NOT a Node.js repo. Do not propose Express, Winston, Supertest, or any
 JavaScript toolchain. If a design requires a Node library, restate it
@@ -64,6 +64,9 @@ F = Forge     | IL  | Design/Build Spec     | OpenAI / o3-mini
 S = SpinDrift | RV  | Reviewer/Integrator   | OpenAI / GPT-4o
 T = Trident   | AR  | Research/Synthesis    | Google / Gemini 2.5 Flash
 U = Lumen     | ES  | Efficiency Specialist | Mistral / Devstral 2
+V = Astra     | FR  | Fast Research         | Google / Gemini 2.0 Flash
+H = Helix     | ST  | Systems Test          | OpenAI / gpt-5.6-terra
+R = Torch     | EG  | Evidence Grounding    | Cohere / Command R
 
 Identity rule: agents must use their own code in all messages.
 Never adopt another agent's code.
@@ -98,8 +101,8 @@ BUILT (in tree, tested, committed):
   src/hub/{cli,status}.py                — health dashboard + CLI
   viewer/server.py                       — AICP Viewer (filters, search, badges)
   kernels/kernel-acal-dev.md             — first live kernel
-  agents/*.md                            — per-agent profile cards (all 6:
-    lumen, lodestar, spindrift, trident, pharos, forge). Each card
+  agents/*.md                            — per-agent profile cards (all 9:
+    lumen, lodestar, spindrift, trident, pharos, forge, astra, helix, torch). Each card
     includes Role, Response discipline, documented failure modes,
     Identity anchoring, and a unique canary string.
     Hub-side fetch-and-prepend wiring verified end-to-end by canary

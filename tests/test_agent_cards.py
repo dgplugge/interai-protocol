@@ -28,7 +28,7 @@ class TestListAgents:
         r = client.get("/agents")
         data = r.json()
         assert "agents" in data
-        for expected in ("lumen", "lodestar", "spindrift", "trident"):
+        for expected in ("lumen", "lodestar", "spindrift", "trident", "astra", "helix", "torch"):
             assert expected in data["agents"], f"expected {expected} in {data['agents']}"
 
     def test_count_matches_list(self, client):
@@ -84,16 +84,37 @@ class TestGetAgentCard:
         assert data["name"] == "forge"
         assert "Forge" in data["card"]
 
+    def test_astra_now_carded(self, client):
+        r = client.get("/agents/astra/card")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["name"] == "astra"
+        assert "Astra" in data["card"]
+
+    def test_helix_now_carded(self, client):
+        r = client.get("/agents/helix/card")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["name"] == "helix"
+        assert "Helix" in data["card"]
+
+    def test_torch_now_carded(self, client):
+        r = client.get("/agents/torch/card")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["name"] == "torch"
+        assert "Torch" in data["card"]
+
 
 class TestCardContent:
     """Content-level checks — each card has required sections."""
 
-    @pytest.mark.parametrize("agent", ["lumen", "lodestar", "spindrift", "trident", "pharos", "forge"])
+    @pytest.mark.parametrize("agent", ["lumen", "lodestar", "spindrift", "trident", "pharos", "forge", "astra", "helix", "torch"])
     def test_card_has_role_line(self, client, agent):
         data = client.get(f"/agents/{agent}/card").json()
         assert "Role:" in data["card"] or "## Role" in data["card"]
 
-    @pytest.mark.parametrize("agent", ["lumen", "lodestar", "spindrift", "trident", "pharos", "forge"])
+    @pytest.mark.parametrize("agent", ["lumen", "lodestar", "spindrift", "trident", "pharos", "forge", "astra", "helix", "torch"])
     def test_card_has_prohibitions(self, client, agent):
         data = client.get(f"/agents/{agent}/card").json()
         assert (
@@ -102,7 +123,7 @@ class TestCardContent:
             or "NO " in data["card"]
         )
 
-    @pytest.mark.parametrize("agent", ["lumen", "lodestar", "spindrift", "trident", "pharos", "forge"])
+    @pytest.mark.parametrize("agent", ["lumen", "lodestar", "spindrift", "trident", "pharos", "forge", "astra", "helix", "torch"])
     def test_card_has_identity_anchoring(self, client, agent):
         data = client.get(f"/agents/{agent}/card").json()
         assert "Identity anchoring" in data["card"]

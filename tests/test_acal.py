@@ -50,6 +50,9 @@ class TestReverseDicts:
         assert AGENTS_REV["Don"] == "D"
         assert AGENTS_REV["Pharos"] == "P"
         assert AGENTS_REV["Lodestar"] == "L"
+        assert AGENTS_REV["Astra"] == "V"
+        assert AGENTS_REV["Helix"] == "H"
+        assert AGENTS_REV["Torch"] == "R"
         assert AGENTS_REV["ALL"] == "*"
 
     def test_status_reverse_includes_hyphen_variant(self):

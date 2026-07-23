@@ -38,6 +38,9 @@ AGENTS: dict[str, str] = {
     "S": "SpinDrift",
     "T": "Trident",
     "U": "Lumen",
+    "V": "Astra",
+    "H": "Helix",
+    "R": "Torch",
     "*": "ALL",
 }
 
@@ -64,6 +67,9 @@ ROLES: dict[str, str] = {
     "AR": "Architect",
     "DA": "Design Advisor",
     "IL": "Implementation Lead",
+    "FR": "Fast Research",
+    "ST": "Systems Test Strategist",
+    "EG": "Evidence Grounding",
 }
 
 PROJECTS: dict[str, str] = {

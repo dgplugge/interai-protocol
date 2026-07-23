@@ -64,6 +64,9 @@ PROVIDERS = [
     {"name": "SpinDrift", "provider": "OpenAI",    "model": "GPT-4o",            "role": "Analyst"},
     {"name": "Trident",   "provider": "Google",    "model": "Gemini 2.5 Flash",  "role": "Research / Synthesis"},
     {"name": "Lumen",     "provider": "Mistral",   "model": "Devstral 2",        "role": "Efficiency Specialist"},
+    {"name": "Astra",     "provider": "Google",    "model": "Gemini 2.0 Flash",  "role": "Fast Research"},
+    {"name": "Helix",     "provider": "OpenAI",    "model": "gpt-5.6-terra",     "role": "Systems Test Strategist"},
+    {"name": "Torch",     "provider": "Cohere",    "model": "Command R",         "role": "RAG / Evidence"},
 ]
 
 # --- App ---

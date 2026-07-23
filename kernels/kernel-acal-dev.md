@@ -23,8 +23,11 @@ AK = ACK         L = Lode  Q = Pend  _ = Low     RV = Reviewer
 RV = Review      F = Forge A = Appr              OR = Orchestrator
 UP = Update      S = Spin  X = Fail              AR = Architect
 PL = Plan        T = Trid  H = Hold              DA = Design Advisor
-ER = Error       U = Lumen                       IL = Impl Lead
-BS = Brainstorm  * = All                         ES = Efficiency Spec
+ER = Error       U = Lumen R = Torch             IL = Impl Lead
+BS = Brainstorm  V = Astra                       ES = Efficiency Spec
+                 H = Helix * = All               FR = Fast Research
+                                                   ST = Systems Test
+                                                   EG = Evidence Ground
 
 ACTIONS          LAYERS           PHRASES
 + = Add          V  = View        ACK = Acknowledged
@@ -57,6 +60,9 @@ F = Forge     | IL  | Design/Build Spec     | OpenAI / o3-mini
 S = SpinDrift | RV  | Reviewer/Integrator   | OpenAI / GPT-4o
 T = Trident   | AR  | Research/Synthesis     | Google / Gemini 2.5 Flash
 U = Lumen     | ES  | Efficiency Specialist  | Mistral / mistral-large
+V = Astra     | FR  | Fast Research          | Google / Gemini 2.0 Flash
+H = Helix     | ST  | Systems Test           | OpenAI / gpt-5.6-terra
+R = Torch     | EG  | Evidence Grounding     | Cohere / Command R
 
 All agents active. Identity rule: you MUST use YOUR agent code in
 all ACAL messages. Never adopt another agent's code. If the message
