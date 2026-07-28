@@ -101,6 +101,47 @@ class SchedulerConfig:
 
 
 @dataclass
+class DispatchBudgetConfig:
+    """Pre-dispatch context-window guard.
+
+    These are context-window limits, not rate limits. Keep them explicit so
+    provider request pacing cannot accidentally change prompt-size behavior.
+    """
+    enabled: bool = True
+    expected_response_tokens: int = 2048
+    default_context_tokens: int = 32000
+    provider_context_tokens: dict = field(default_factory=lambda: {
+        "anthropic": 200000,
+        "openai": 128000,
+        "google": 1000000,
+        "mistral": 128000,
+        "cohere": 128000,
+    })
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "DispatchBudgetConfig":
+        c = cls()
+        if "enabled" in data:
+            c.enabled = bool(data["enabled"])
+        if "expected_response_tokens" in data:
+            c.expected_response_tokens = max(0, int(data["expected_response_tokens"]))
+        if "default_context_tokens" in data:
+            c.default_context_tokens = max(1, int(data["default_context_tokens"]))
+        if "provider_context_tokens" in data and isinstance(data["provider_context_tokens"], dict):
+            c.provider_context_tokens = {
+                str(k).lower(): max(1, int(v))
+                for k, v in data["provider_context_tokens"].items()
+            }
+        return c
+
+    def limit_for_provider(self, provider: str) -> int:
+        return self.provider_context_tokens.get(
+            provider.lower(),
+            self.default_context_tokens,
+        )
+
+
+@dataclass
 class AgentConfig:
     summarizer_role: str = "Lumen"
     summarizer_fallback_chain: list[str] = field(default_factory=list)
@@ -108,6 +149,7 @@ class AgentConfig:
     embedder: EmbedderConfig = field(default_factory=EmbedderConfig)
     retrieval: RetrievalConfig = field(default_factory=RetrievalConfig)
     scheduler: SchedulerConfig = field(default_factory=SchedulerConfig)
+    dispatch_budget: DispatchBudgetConfig = field(default_factory=DispatchBudgetConfig)
     threshold: int = 5
     # Raw key-value fallback for API keys loaded from the config file.
     # Env vars always win over these.
@@ -128,6 +170,8 @@ class AgentConfig:
             c.retrieval = RetrievalConfig.from_dict(data["retrieval"])
         if isinstance(data.get("scheduler"), dict):
             c.scheduler = SchedulerConfig.from_dict(data["scheduler"])
+        if isinstance(data.get("dispatch_budget"), dict):
+            c.dispatch_budget = DispatchBudgetConfig.from_dict(data["dispatch_budget"])
 
         c.threshold = int(data.get("threshold", 5))
 

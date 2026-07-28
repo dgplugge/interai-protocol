@@ -24,5 +24,17 @@
     "enabled": false,
     "interval_seconds": 300
   },
+  "dispatch_budget": {
+    "enabled": true,
+    "expected_response_tokens": 2048,
+    "default_context_tokens": 32000,
+    "provider_context_tokens": {
+      "anthropic": 200000,
+      "openai": 128000,
+      "google": 1000000,
+      "mistral": 128000,
+      "cohere": 128000
+    }
+  },
   "threshold": 5
 }

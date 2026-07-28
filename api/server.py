@@ -163,6 +163,68 @@ def _try_embed(content: str):
         return None
 
 
+def _provider_for_agent(agent_name: str) -> str:
+    provider = next(
+        (p for p in PROVIDERS if p["name"].lower() == agent_name.lower()),
+        None,
+    )
+    return str(provider.get("provider", "default")) if provider else "default"
+
+
+def _dispatch_token_budget(
+    prompt: str,
+    kernel_preamble: str,
+    agent_names: list[str],
+) -> dict:
+    """Estimate dispatch size against explicit provider context windows."""
+    cfg = agent_config.dispatch_budget
+    provider_rows = []
+    input_text = "\n\n".join(p for p in (kernel_preamble, prompt) if p)
+
+    for agent_name in agent_names:
+        provider = _provider_for_agent(agent_name)
+        input_tokens = estimate_tokens(input_text, provider)
+        expected_response_tokens = cfg.expected_response_tokens
+        estimated_total = input_tokens + expected_response_tokens
+        context_limit = cfg.limit_for_provider(provider)
+        provider_rows.append({
+            "agent": agent_name,
+            "provider": provider,
+            "input_tokens": input_tokens,
+            "expected_response_tokens": expected_response_tokens,
+            "estimated_total_tokens": estimated_total,
+            "context_limit_tokens": context_limit,
+            "within_budget": estimated_total <= context_limit,
+        })
+
+    return {
+        "enabled": cfg.enabled,
+        "providers": provider_rows,
+        "within_budget": all(row["within_budget"] for row in provider_rows),
+    }
+
+
+def _enforce_dispatch_token_budget(
+    prompt: str,
+    kernel_preamble: str,
+    agent_names: list[str],
+) -> dict:
+    budget = _dispatch_token_budget(prompt, kernel_preamble, agent_names)
+    if not budget["enabled"] or budget["within_budget"]:
+        return budget
+
+    offenders = [row for row in budget["providers"] if not row["within_budget"]]
+    raise HTTPException(
+        422,
+        {
+            "error": "TOKEN_BUDGET_EXCEEDED",
+            "message": "Dispatch exceeds one or more provider context windows.",
+            "offenders": offenders,
+            "budget": budget,
+        },
+    )
+
+
 # --- Models ---
 
 class MessageCreate(BaseModel):
@@ -700,6 +762,12 @@ def dispatch_round(
     else:
         agent_names = [p["name"] for p in PROVIDERS if p["role"] != "Pending Setup"]
 
+    token_budget = _enforce_dispatch_token_budget(
+        prompt=req.prompt,
+        kernel_preamble=kernel_preamble,
+        agent_names=agent_names,
+    )
+
     # Create the orchestrator's prompt message
     msg_id = next_msg_id(data, project)
     seq = next_seq(data)
@@ -841,6 +909,7 @@ def dispatch_round(
         "sync": sync_status,
         "messages_since_compact": thread_tracker.get_count(project),
         "compact_due": thread_tracker.should_compact(project),
+        "token_budget": token_budget,
     }
     if kernel_info:
         result["kernel"] = kernel_info

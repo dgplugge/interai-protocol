@@ -16,6 +16,7 @@ from middleware.agent_config import (
     SummaryGeneratorConfig,
     EmbedderConfig,
     RetrievalConfig,
+    DispatchBudgetConfig,
     MissingApiKey,
     load_config,
     next_summarizer,
@@ -50,6 +51,15 @@ class TestLoad:
                 },
                 "embedder": {"provider": "openai", "model": "text-embedding-3-small", "dims": 1536},
                 "retrieval": {"top_k": 7},
+                "dispatch_budget": {
+                    "enabled": True,
+                    "expected_response_tokens": 512,
+                    "default_context_tokens": 4096,
+                    "provider_context_tokens": {
+                        "openai": 8192,
+                        "cohere": 16384,
+                    },
+                },
                 "threshold": 3,
             })
             cfg = load_config(p)
@@ -58,6 +68,11 @@ class TestLoad:
             assert cfg.summary_generator.max_output_tokens == 1024
             assert cfg.summary_generator.tier_token_budgets["compressed"] == 400
             assert cfg.retrieval.top_k == 7
+            assert cfg.dispatch_budget.enabled is True
+            assert cfg.dispatch_budget.expected_response_tokens == 512
+            assert cfg.dispatch_budget.default_context_tokens == 4096
+            assert cfg.dispatch_budget.limit_for_provider("OpenAI") == 8192
+            assert cfg.dispatch_budget.limit_for_provider("unknown") == 4096
             assert cfg.threshold == 3
 
     def test_non_dict_file_returns_defaults(self):
