@@ -186,8 +186,30 @@ function generateMessageId() {
  * Falls back to generateMessageId() if no sequential IDs found.
  * @returns {string} Next sequential ID like "MSG-0014"
  */
+function getMessagePrefixForProject(projectId) {
+    if (!projectId || projectId === 'all') return 'MSG-';
+
+    // Preferred source: project registry metadata
+    if (typeof getRegistryMessagePrefix === 'function') {
+        return getRegistryMessagePrefix(projectId) || 'MSG-';
+    }
+
+    // Backward-compatible fallback
+    const fallback = {
+        'InterAI-Protocol': 'MSG-',
+        'OperatorHub': 'OH-MSG-',
+        'StudyGuide': 'SG-MSG-',
+        'PortfolioAnalysis': 'PA-MSG-'
+    };
+    return fallback[projectId] || 'MSG-';
+}
+
 function generateNextMessageId(projectFilter) {
     if (typeof allMessages === 'undefined' || !allMessages || allMessages.length === 0) {
+        if (projectFilter && projectFilter !== 'all') {
+            const prefix0 = getMessagePrefixForProject(projectFilter);
+            return `${prefix0}0001`;
+        }
         return generateMessageId();
     }
 
@@ -196,16 +218,27 @@ function generateNextMessageId(projectFilter) {
         ? allMessages.filter(m => m._projectId === projectFilter)
         : allMessages;
 
-    if (msgs.length === 0) return generateMessageId();
+    if (msgs.length === 0) {
+        if (projectFilter && projectFilter !== 'all') {
+            const prefix1 = getMessagePrefixForProject(projectFilter);
+            return `${prefix1}0001`;
+        }
+        return generateMessageId();
+    }
 
     // Detect the ID prefix pattern for this project (e.g., "MSG-" or "OH-MSG-")
     let maxNum = 0;
-    let prefix = 'MSG-';
+    const requestedPrefix = (projectFilter && projectFilter !== 'all')
+        ? getMessagePrefixForProject(projectFilter)
+        : null;
+    let prefix = requestedPrefix || 'MSG-';
 
     msgs.forEach(msg => {
         // Match patterns like MSG-0001, OH-MSG-0001, etc.
         const match = msg.envelope.id.match(/^((?:[A-Z]+-)?MSG-)(\d+)$/);
         if (match) {
+            // In project-scoped mode, only count IDs that match the project's prefix.
+            if (requestedPrefix && match[1] !== requestedPrefix) return;
             const num = parseInt(match[2], 10);
             if (num > maxNum) {
                 maxNum = num;
@@ -214,7 +247,10 @@ function generateNextMessageId(projectFilter) {
         }
     });
 
-    if (maxNum === 0) return generateMessageId();
+    if (maxNum === 0) {
+        if (requestedPrefix) return `${requestedPrefix}0001`;
+        return generateMessageId();
+    }
     return `${prefix}${String(maxNum + 1).padStart(4, '0')}`;
 }
 

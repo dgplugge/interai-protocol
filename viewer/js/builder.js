@@ -14,6 +14,36 @@
  */
 
 let builderVisible = false;
+let lastAutoTo = '';
+
+/**
+ * Returns default recipients for a project, excluding sender if present.
+ * @param {string} projectId
+ * @param {string} sender
+ * @returns {string[]}
+ */
+function getDefaultRecipientsForProject(projectId, sender) {
+    if (typeof getRegistryDefaultRecipients === 'function') {
+        var registryRecipients = getRegistryDefaultRecipients(projectId, sender);
+        if (registryRecipients && registryRecipients.length > 0) return registryRecipients;
+    }
+
+    // Backward-compatible fallback when registry metadata is unavailable.
+    var fallback = {
+        'InterAI-Protocol': ['Pharos', 'Lodestar'],
+        'OperatorHub': ['Pharos', 'Lodestar'],
+        'StudyGuide': ['Pharos'],
+        'PortfolioAnalysis': ['Pharos']
+    };
+    var senderLower = (sender || '').toLowerCase().trim();
+    return (fallback[projectId] || []).filter(function(name) {
+        return name.toLowerCase() !== senderLower;
+    });
+}
+
+function getDefaultRecipientString(projectId, sender) {
+    return getDefaultRecipientsForProject(projectId, sender).join(', ');
+}
 
 /**
  * Toggles the builder panel visibility.
@@ -47,8 +77,11 @@ function resetBuilder() {
     setFieldValue('b-type', 'REQUEST');
     var projDefaults = getActiveProjectDefaults();
     setFieldValue('b-id', generateNextMessageId(projDefaults.project));
-    setFieldValue('b-from', 'Don');
-    setFieldValue('b-to', 'Pharos, Lodestar');
+    var defaultSender = 'Don';
+    setFieldValue('b-from', defaultSender);
+    var defaultTo = getDefaultRecipientString(projDefaults.project, defaultSender) || 'Pharos, Lodestar';
+    setFieldValue('b-to', defaultTo);
+    lastAutoTo = defaultTo;
     setFieldValue('b-time', nowISO());
     setFieldValue('b-task', '');
     setFieldValue('b-status', 'PENDING');
@@ -364,6 +397,23 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(checkN8nStatus, 500);
 });
 
+// Keep recipients aligned with selected project defaults when sender changes.
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        var fromEl = document.getElementById('b-from');
+        if (!fromEl) return;
+        fromEl.addEventListener('input', function() {
+            var projectId = getFieldValue('b-project');
+            if (!projectId) return;
+            var suggested = getDefaultRecipientString(projectId, fromEl.value || 'Don');
+            if (suggested) {
+                setFieldValue('b-to', suggested);
+                updatePreview();
+            }
+        });
+    }, 600);
+});
+
 // === Slice 4: Approval Pre-fill ===
 
 /**
@@ -563,6 +613,39 @@ function onBuilderProjectChange() {
     setFieldValue('b-domain', domain);
     if (domainEl) domainEl.readOnly = true;
 
+    // Regenerate ID and recipients for the selected project.
+    setFieldValue('b-id', generateNextMessageId(val));
+    var fromVal = getFieldValue('b-from') || 'Don';
+    var recipients = getDefaultRecipientString(val, fromVal);
+    if (recipients) {
+        setFieldValue('b-to', recipients);
+        lastAutoTo = recipients;
+    }
+
+    updatePreview();
+}
+
+/**
+ * Handles sender changes. Keeps recipients project-aware without clobbering
+ * manually edited recipient lists.
+ */
+function onBuilderFromChange() {
+    var select = document.getElementById('b-project-select');
+    var projectId = getFieldValue('b-project');
+    if (!projectId && select && select.value && select.value !== '__new__') {
+        projectId = select.value;
+    }
+
+    var sender = getFieldValue('b-from') || 'Don';
+    var currentTo = getFieldValue('b-to');
+    var nextDefaultTo = getDefaultRecipientString(projectId, sender);
+
+    // Only auto-rewrite recipients when the user hasn't customized $TO.
+    if (nextDefaultTo && (!currentTo || currentTo === lastAutoTo)) {
+        setFieldValue('b-to', nextDefaultTo);
+        lastAutoTo = nextDefaultTo;
+    }
+
     updatePreview();
 }
 
@@ -711,7 +794,7 @@ function initBuilder() {
                     <div class="builder-row">
                         <div class="builder-field">
                             <label for="b-from">$FROM</label>
-                            <input type="text" id="b-from" placeholder="Don" oninput="updatePreview()">
+                            <input type="text" id="b-from" placeholder="Don" oninput="onBuilderFromChange()">
                         </div>
                         <div class="builder-field">
                             <label for="b-to">$TO</label>

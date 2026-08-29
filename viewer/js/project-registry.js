@@ -80,6 +80,33 @@ function getRegistryDomain(projectId) {
 }
 
 /**
+ * Get the message ID prefix for a project.
+ * Example: "OperatorHub" -> "OH-MSG-"
+ * Falls back to "MSG-" for legacy projects.
+ * @param {string} projectId
+ * @returns {string}
+ */
+function getRegistryMessagePrefix(projectId) {
+    var proj = getRegistryProjectById(projectId);
+    return (proj && proj.messagePrefix) ? proj.messagePrefix : 'MSG-';
+}
+
+/**
+ * Get the default recipient list for a project.
+ * @param {string} projectId
+ * @param {string} [sender] Optional sender to exclude from recipients
+ * @returns {string[]} Recipient names
+ */
+function getRegistryDefaultRecipients(projectId, sender) {
+    var proj = getRegistryProjectById(projectId);
+    if (!proj || !Array.isArray(proj.defaultAgents)) return [];
+    var senderLower = (sender || '').toLowerCase().trim();
+    return proj.defaultAgents.filter(function(agent) {
+        return agent && agent.toLowerCase() !== senderLower;
+    });
+}
+
+/**
  * Normalize a project name into a machine-readable ID.
  * "Study Guide" -> "StudyGuide", "My Cool Project" -> "MyCoolProject"
  * @param {string} name
